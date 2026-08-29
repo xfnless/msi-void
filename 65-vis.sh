@@ -5,6 +5,12 @@ set -eu
 src=$HOME/.local/src/vis
 prefix=$HOME/.local
 
+sudo xbps-install -Sy \
+	base-devel pkg-config \
+	ncurses-devel \
+	lua54-devel lua54-lpeg \
+	tre-devel acl-devel
+
 mkdir -p "$(dirname "$src")"
 if [ -d "$src/.git" ]; then
 	git -C "$src" pull --ff-only
@@ -22,7 +28,9 @@ make distclean >/dev/null 2>&1 || true
 	--enable-tre=yes \
 	--enable-acl=yes
 make -j2
-make test
+make -C test/core
+make -C test/lua
+make -C test/vis
 make install
 
 "$prefix/bin/vis" -v
