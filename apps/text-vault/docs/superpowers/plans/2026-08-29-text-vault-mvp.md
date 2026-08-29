@@ -4,9 +4,9 @@
 
 **Goal:** Build a daily-usable single-user encrypted text workspace with live in-memory search, desktop/mobile navigation, bottom query tabs, one global Save action, and atomic ciphertext persistence.
 
-**Architecture:** A no-build VanJS frontend owns the decrypted object repository, query results, workspace, dirty tracking, and Web Crypto boundary. A small Go server embeds the frontend, authenticates one operator, and atomically commits batches of independently encrypted object versions through a manifest pointer; it never sees plaintext.
+**Architecture:** A no-build VanJS frontend owns the decrypted object repository, query results, workspace, dirty tracking, and Web Crypto boundary. A small Go server embeds the frontend, authenticates one operator, and atomically commits batches of independently encrypted object versions in one SQLite transaction; it never sees plaintext.
 
-**Tech Stack:** Go 1.27.0 standard library, browser ES modules, VanJS 1.6.1 vendored locally, Web Crypto PBKDF2-HMAC-SHA-256 and AES-256-GCM, Go `testing`, Node 24.18+ built-in test runner, Playwright for final browser verification.
+**Tech Stack:** Void Linux Go 1.26.5, Go standard library, `modernc.org/sqlite` v1.57.0, browser ES modules, VanJS 1.6.1 vendored locally, Web Crypto PBKDF2-HMAC-SHA-256 and AES-256-GCM, Go `testing`, Node 24.18+ built-in test runner, Playwright for final browser verification.
 
 **Spec:** `apps/text-vault/docs/superpowers/specs/2026-08-29-text-vault-design.md`
 
@@ -17,11 +17,11 @@
 - Every edit updates the unified in-memory repository and live search immediately; internal navigation never prompts or discards memory changes.
 - Plaintext, search terms, unwrapped keys, and workspace content never enter URLs, logs, localStorage, IndexedDB, or server files.
 - The server stores ciphertext and synchronization metadata only; all public production traffic requires HTTPS.
-- A commit publishes all changed objects and the workspace together or publishes none of them.
+- A SQLite transaction publishes all changed objects and the workspace together or publishes none of them.
 - Unsaved changes may be lost on reload or process termination; dirty pages register native `beforeunload` protection.
 - First release is single-user, online-only, plain text only, with no attachments, Markdown preview, properties UI, collaboration, AI, or server-side search.
 - Runtime data and local secrets are ignored by Git; the existing `msi/home/.config/tri/config` worktree change must remain untouched.
-- Build and test with Go 1.27.0; set `go 1.27.0` in `go.mod` and build production binaries with `CGO_ENABLED=0`.
+- Build and test with Void Linux Go 1.26.5; set `go 1.26.0` in `go.mod` and build production binaries with `CGO_ENABLED=0`.
 - Cryptographic envelope formats include explicit version and algorithm identifiers; do not invent cryptographic primitives.
 - Prefer clear browser-native APIs, but use focused mature libraries when they materially improve correctness or maintenance; pin exact versions, vendor production assets locally, record license/checksum/provenance, lazy-load format-specific code, and hide each dependency behind a small project-owned adapter.
 - Do not add a runtime dependency merely for convenience already covered clearly by the platform; do not reimplement specialist parsers, editors, or search algorithms merely to claim zero dependencies.
@@ -32,7 +32,7 @@
 apps/text-vault/
 ├── .gitignore                       runtime data, binaries, and local config
 ├── README.md                        local run, production deploy, backup/restore
-├── go.mod                           Go module with no runtime third-party packages
+├── go.mod                           Go module with pinned pure-Go SQLite driver
 ├── package.json                     ESM test scripts and pinned Playwright dev tool
 ├── playwright.config.mjs            isolated browser-test server and projects
 ├── cmd/text-vault/main.go           flags, server construction, graceful shutdown
@@ -40,8 +40,8 @@ apps/text-vault/
 ├── internal/auth/session_test.go
 ├── internal/httpapi/api.go          JSON routes and error mapping
 ├── internal/httpapi/api_test.go
-├── internal/store/model.go          ciphertext envelopes, manifests, commit contracts
-├── internal/store/store.go          filesystem reads and atomic batch publication
+├── internal/store/model.go          ciphertext envelopes and commit contracts
+├── internal/store/store.go          SQLite schema, transactions, reads, and backup
 ├── internal/store/store_test.go
 ├── web/embed.go                     embedded frontend filesystem
 ├── web/index.html                    application shell and lock screen
@@ -103,7 +103,7 @@ func TestHealthAndSPA(t *testing.T) {
 }
 ```
 
-Before running the test, execute `go version`. The current workstation does not have Go installed; install Go 1.27.0 through the user's approved system package workflow, then record the actual version in `README.md`. Do not download or install a compiler without approval.
+Before running the test, execute `go version`. The current workstation does not have Go installed; install the current Void `go` package (observed as 1.26.5_1) through XBPS, then record the actual version in `README.md`. Do not download a separate compiler toolchain.
 
 - [ ] **Step 2: Run the focused test and verify failure**
 
@@ -134,7 +134,7 @@ git commit -m "feat: scaffold text vault server"
 
 ---
 
-### Task 2: Atomic versioned ciphertext object store
+### Task 2: Transactional SQLite ciphertext object store
 
 **Files:**
 - Create: `apps/text-vault/internal/store/model.go`
@@ -148,13 +148,13 @@ git commit -m "feat: scaffold text vault server"
 - Produces: `(*Store).CreateVaultHeader(ctx context.Context, json.RawMessage) error`
 - Produces: `(*Store).VaultHeader(ctx context.Context) (json.RawMessage, error)`
 - Produces: `store.ErrConflict`
-- Consumes: filesystem path supplied by `main`
+- Consumes: SQLite database path supplied by `main`
 
 - [ ] **Step 1: Write failing atomic commit tests**
 
 ```go
 func TestCommitPublishesBatchAndRejectsStaleBase(t *testing.T) {
-    s, err := Open(t.TempDir())
+    s, err := Open(filepath.Join(t.TempDir(), "text-vault.db"))
     if err != nil { t.Fatal(err) }
 
     first, err := s.Commit(context.Background(), CommitRequest{
@@ -176,7 +176,7 @@ func TestCommitPublishesBatchAndRejectsStaleBase(t *testing.T) {
 }
 ```
 
-Add tests for invalid IDs, duplicate IDs, revision skips, truncated manifests, reopening a committed store, create-only `vault.json`, and reading the exact header bytes after reopen.
+Add tests for invalid IDs, duplicate IDs, revision skips, transaction rollback after a forced second-object failure, reopening a committed database, create-only vault header, and reading the exact header bytes after reopen.
 
 - [ ] **Step 2: Run store tests and verify failure**
 
@@ -184,7 +184,7 @@ Run: `cd apps/text-vault && go test ./internal/store -v`
 
 Expected: FAIL because the store package is absent.
 
-- [ ] **Step 3: Implement immutable object versions and atomic manifest publication**
+- [ ] **Step 3: Implement schema migration and atomic SQLite transactions**
 
 Use these contracts:
 
@@ -199,7 +199,6 @@ type CipherObject struct {
 type ObjectRef struct {
     Kind     string `json:"kind"`
     Revision uint64 `json:"revision"`
-    File     string `json:"file"`
 }
 
 type Manifest struct {
@@ -214,9 +213,11 @@ type CommitRequest struct {
 }
 ```
 
-Validate IDs with `^[A-Za-z0-9_-]{16,80}$`, permit kinds `entry`, `workspace`, `query`, and `view`, require new object revision 1 and existing object revision exactly current+1. Write each version to `objects/<kind>/<id>/<revision>.json` using create-exclusive semantics, `Sync`, and close. Copy the current manifest, update refs, write `manifests/<generation>.json`, sync it, then atomically replace `HEAD` with the decimal generation. Serialize commits with a mutex. `Snapshot` resolves only files referenced by the active manifest, so failed batches remain invisible.
+Open SQLite through `database/sql` and the blank-imported `modernc.org/sqlite` driver. Set `journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`, and `synchronous=FULL`; limit the pool to one open writer connection. Create `metadata(key TEXT PRIMARY KEY,value BLOB NOT NULL)`, `objects(id TEXT PRIMARY KEY,kind TEXT NOT NULL,revision INTEGER NOT NULL,envelope BLOB NOT NULL,updated_at INTEGER NOT NULL)`, `object_versions(id TEXT NOT NULL,revision INTEGER NOT NULL,kind TEXT NOT NULL,envelope BLOB NOT NULL,generation INTEGER NOT NULL,PRIMARY KEY(id,revision))`, and `schema_migrations(version INTEGER PRIMARY KEY,applied_at INTEGER NOT NULL)`.
 
-`CreateVaultHeader` validates that the value is a JSON object no larger than 64 KiB, writes `vault.json` with create-exclusive semantics and mode `0600`, and returns `ErrConflict` if a header already exists. `VaultHeader` returns the stored raw JSON without interpreting cryptographic fields.
+Validate IDs with `^[A-Za-z0-9_-]{16,80}$`, permit kinds `entry`, `workspace`, `query`, and `view`, require new object revision 1 and existing object revision exactly current+1. `Commit` begins a transaction, reads and compares `metadata.generation`, validates every revision before any insertion, writes history and current rows, increments generation, and commits. Any error explicitly rolls back. `Snapshot` reads generation and all current rows in one read transaction.
+
+`CreateVaultHeader` validates that the value is a JSON object no larger than 64 KiB and inserts the opaque bytes at `metadata.vault_header`; uniqueness returns `ErrConflict`. `VaultHeader` returns the stored raw JSON without interpreting cryptographic fields.
 
 - [ ] **Step 4: Run store tests including race detector**
 
@@ -228,7 +229,7 @@ Expected: PASS.
 
 ```bash
 git add apps/text-vault/internal/store
-git commit -m "feat: add atomic ciphertext store"
+git commit -m "feat: add transactional ciphertext store"
 ```
 
 ---
@@ -707,7 +708,7 @@ func TestExportRestoresIntoEmptyStore(t *testing.T) {
 }
 ```
 
-The archive test must also reject absolute paths, `..` traversal, symlinks, and files not referenced by a valid manifest.
+The archive test must also reject absolute paths, `..` traversal, symlinks, multiple database files, and a database that fails SQLite integrity checks.
 
 - [ ] **Step 2: Run export test and verify failure**
 
@@ -717,7 +718,7 @@ Expected: FAIL because export is absent.
 
 - [ ] **Step 3: Implement consistent ciphertext export and operational docs**
 
-Export a tar.gz containing `HEAD`, the active manifest, `vault.json`, and every object version referenced by that manifest. Require session plus CSRF confirmation token for export. Never decrypt or reinterpret envelope contents. Document a restore drill that stops the service, moves an explicit existing data directory aside, extracts into a new empty directory, starts the binary, unlocks, verifies known records, and only then retains the backup as tested.
+Use SQLite's online backup facility exposed by the driver to create a consistent temporary `text-vault.db`, then export that file as a tar.gz. Require session plus CSRF confirmation token for export. Never decrypt or reinterpret envelope contents. Document a restore drill that stops the service, moves an explicit existing data directory aside, extracts into a new empty directory, starts the binary, unlocks, verifies known records, and only then retains the backup as tested. Explicitly warn against copying only a live WAL-mode main file.
 
 Document build (`go test ./...`, `go build ./cmd/text-vault`), local HTTP mode, production HTTPS mode, access-token generation, permissions (`0700` data directories, `0600` files), Caddy reverse proxy, systemd hardening, and scheduled encrypted directory backups. Do not include real hostnames, tokens, passwords, or user data.
 
