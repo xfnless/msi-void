@@ -85,6 +85,30 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// Backup writes a transactionally consistent standalone SQLite database.
+// The destination must not exist, which prevents an accidental overwrite.
+func (s *Store) Backup(ctx context.Context, destination string) error {
+	abs, err := filepath.Abs(destination)
+	if err != nil {
+		return fmt.Errorf("resolve backup destination: %w", err)
+	}
+	if info, err := os.Stat(abs); err == nil {
+		return fmt.Errorf("backup destination already exists: %s", info.Name())
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect backup destination: %w", err)
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0o700); err != nil {
+		return fmt.Errorf("create backup directory: %w", err)
+	}
+	if _, err := s.db.ExecContext(ctx, `VACUUM INTO ?`, abs); err != nil {
+		return fmt.Errorf("backup sqlite: %w", err)
+	}
+	if err := os.Chmod(abs, 0o600); err != nil {
+		return fmt.Errorf("protect backup: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) Snapshot(ctx context.Context) (Snapshot, error) {
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 	if err != nil {

@@ -20,7 +20,18 @@ import (
 )
 
 func main() {
-	cfg, err := parseConfig(os.Args[1:], os.Getenv)
+	args := os.Args[1:]
+	if len(args) > 0 && args[0] == "backup" {
+		if err := runBackup(args[1:]); err != nil {
+			slog.Error("backup failed", "error", err)
+			os.Exit(1)
+		}
+		return
+	}
+	if len(args) > 0 && args[0] == "serve" {
+		args = args[1:]
+	}
+	cfg, err := parseConfig(args, os.Getenv)
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(2)
@@ -64,6 +75,46 @@ func main() {
 		slog.Error("server failed", "error", err)
 		os.Exit(1)
 	}
+}
+
+type backupConfig struct {
+	database string
+	output   string
+}
+
+func parseBackupConfig(args []string) (backupConfig, error) {
+	flags := flag.NewFlagSet("text-vault backup", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	var cfg backupConfig
+	flags.StringVar(&cfg.database, "database", "./data/text-vault.db", "source SQLite database path")
+	flags.StringVar(&cfg.output, "output", "", "new backup database path")
+	if err := flags.Parse(args); err != nil {
+		return backupConfig{}, err
+	}
+	if flags.NArg() != 0 {
+		return backupConfig{}, fmt.Errorf("unexpected arguments: %v", flags.Args())
+	}
+	if cfg.output == "" {
+		return backupConfig{}, errors.New("-output is required")
+	}
+	return cfg, nil
+}
+
+func runBackup(args []string) error {
+	cfg, err := parseBackupConfig(args)
+	if err != nil {
+		return err
+	}
+	database, err := store.Open(cfg.database)
+	if err != nil {
+		return err
+	}
+	defer database.Close()
+	if err := database.Backup(context.Background(), cfg.output); err != nil {
+		return err
+	}
+	slog.Info("backup complete", "output", cfg.output)
+	return nil
 }
 
 type config struct {

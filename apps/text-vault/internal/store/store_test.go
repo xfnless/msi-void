@@ -109,3 +109,35 @@ func TestVaultHeaderIsCreateOnlyAndSurvivesReopen(t *testing.T) {
 		t.Fatalf("header = %s", got)
 	}
 }
+
+func TestBackupCreatesAConsistentReopenableDatabase(t *testing.T) {
+	ctx := context.Background()
+	dir := t.TempDir()
+	s, err := Open(filepath.Join(dir, "live.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	if _, err := s.Commit(ctx, CommitRequest{BaseGeneration: 0, Objects: []CipherObject{
+		{ID: "entry_backup_0001", Kind: "entry", Revision: 1, Envelope: json.RawMessage(`{"ciphertext":"AA=="}`)},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+
+	backupPath := filepath.Join(dir, "backup.db")
+	if err := s.Backup(ctx, backupPath); err != nil {
+		t.Fatal(err)
+	}
+	backup, err := Open(backupPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = backup.Close() })
+	snapshot, err := backup.Snapshot(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if snapshot.Manifest.Generation != 1 || snapshot.Objects["entry_backup_0001"].Revision != 1 {
+		t.Fatalf("backup snapshot = %#v", snapshot)
+	}
+}

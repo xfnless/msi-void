@@ -5,7 +5,7 @@ import (
 	"io/fs"
 )
 
-//go:embed index.html styles.css js
+//go:embed index.html styles.css js vendor
 var files embed.FS
 
 var FS fs.FS = files
