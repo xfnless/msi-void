@@ -6,7 +6,7 @@
 
 **Architecture:** A no-build VanJS frontend owns the decrypted object repository, query results, workspace, dirty tracking, and Web Crypto boundary. A small Go server embeds the frontend, authenticates one operator, and atomically commits batches of independently encrypted object versions through a manifest pointer; it never sees plaintext.
 
-**Tech Stack:** Go 1.24+ standard library, browser ES modules, VanJS 1.6.1 vendored locally, Web Crypto PBKDF2-HMAC-SHA-256 and AES-256-GCM, Go `testing`, Node 22+ built-in test runner, Playwright for final browser verification.
+**Tech Stack:** Go 1.27.0 standard library, browser ES modules, VanJS 1.6.1 vendored locally, Web Crypto PBKDF2-HMAC-SHA-256 and AES-256-GCM, Go `testing`, Node 24.18+ built-in test runner, Playwright for final browser verification.
 
 **Spec:** `apps/text-vault/docs/superpowers/specs/2026-08-29-text-vault-design.md`
 
@@ -21,6 +21,7 @@
 - Unsaved changes may be lost on reload or process termination; dirty pages register native `beforeunload` protection.
 - First release is single-user, online-only, plain text only, with no attachments, Markdown preview, properties UI, collaboration, AI, or server-side search.
 - Runtime data and local secrets are ignored by Git; the existing `msi/home/.config/tri/config` worktree change must remain untouched.
+- Build and test with Go 1.27.0; set `go 1.27.0` in `go.mod` and build production binaries with `CGO_ENABLED=0`.
 - Cryptographic envelope formats include explicit version and algorithm identifiers; do not invent cryptographic primitives.
 - Prefer clear browser-native APIs, but use focused mature libraries when they materially improve correctness or maintenance; pin exact versions, vendor production assets locally, record license/checksum/provenance, lazy-load format-specific code, and hide each dependency behind a small project-owned adapter.
 - Do not add a runtime dependency merely for convenience already covered clearly by the platform; do not reimplement specialist parsers, editors, or search algorithms merely to claim zero dependencies.
@@ -102,7 +103,7 @@ func TestHealthAndSPA(t *testing.T) {
 }
 ```
 
-Before running the test, execute `go version`. The current workstation does not have Go installed; install Go 1.24 or newer through the user's approved system package workflow, then record the actual version in `README.md`. Do not download or install a compiler without approval.
+Before running the test, execute `go version`. The current workstation does not have Go installed; install Go 1.27.0 through the user's approved system package workflow, then record the actual version in `README.md`. Do not download or install a compiler without approval.
 
 - [ ] **Step 2: Run the focused test and verify failure**
 
