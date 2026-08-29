@@ -1,0 +1,22 @@
+# GRUB 行为（/etc/default/grub）
+#
+# GRUB_DEFAULT=0
+#   菜单第 0 项默认启动。我们把 Windows 做成第 0 项，所以隐藏时直接进 Win。
+#
+# GRUB_TIMEOUT_STYLE=hidden
+# GRUB_TIMEOUT=1
+#   不显示菜单，只等约 1 秒；这段时间按 Esc 才会画出菜单。
+#
+# GRUB_CMDLINE_LINUX_DEFAULT
+#   传给 Void 内核的参数；loglevel=4 减少开机刷屏。
+#
+# GRUB_DISABLE_RECOVERY / GRUB_DISABLE_SUBMENU
+#   菜单更干净，不要 recovery 子菜单。
+
+GRUB_DEFAULT=0
+GRUB_TIMEOUT_STYLE=hidden
+GRUB_TIMEOUT=1
+GRUB_DISTRIBUTOR="Void"
+GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4"
+GRUB_DISABLE_RECOVERY=true
+GRUB_DISABLE_SUBMENU=true

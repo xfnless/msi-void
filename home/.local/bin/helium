@@ -1,0 +1,4 @@
+#!/bin/sh
+# 启动前注入开箱偏好（仅浏览器未运行时写入）
+helium-seed-prefs 2>/dev/null || true
+exec "$HOME/.local/opt/helium/helium-wrapper" "$@"

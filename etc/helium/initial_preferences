@@ -1,0 +1,66 @@
+{
+  "bookmark_bar": {
+    "show_on_all_tabs": false,
+    "show_tab_groups": false,
+    "visibility_state": 1
+  },
+  "browser": {
+    "custom_chrome_frame": false,
+    "show_forward_button": false,
+    "show_home_button": false,
+    "theme": {
+      "color_scheme2": 2,
+      "is_grayscale2": true
+    }
+  },
+  "extensions": {
+    "theme": {
+      "system_theme": 0
+    },
+    "ui": {
+      "developer_mode": false
+    }
+  },
+  "helium": {
+    "browser": {
+      "centered_location_bar": false,
+      "layout": 3,
+      "minimal_location_bar": false,
+      "rounded_frame": false,
+      "show_avatar_button": false,
+      "show_back_button": false,
+      "show_dynamic_new_tab_button": false,
+      "show_extensions_button": true,
+      "show_media_button": false,
+      "show_menu_button": false,
+      "show_reload_button": false,
+      "show_vertical_tabs_collapse_button": false,
+      "zen_mode": false,
+      "zen_mode_top_chrome_pinned": false
+    },
+    "completed_onboarding": true,
+    "services": {
+      "schema_version": 1,
+      "user_consented": true
+    }
+  },
+  "intl": {
+    "selected_languages": "en-US,en"
+  },
+  "ntp": {
+    "shortcuts_auto_removal_disabled": true
+  },
+  "privacy_sandbox": {
+    "first_party_sets_enabled": false
+  },
+  "spellcheck": {
+    "dictionaries": ["en-US"]
+  },
+  "tab_search": {
+    "pinned_to_tabstrip": false
+  },
+  "vertical_tabs": {
+    "collapsed_state": false,
+    "uncollapsed_width": 200
+  }
+}

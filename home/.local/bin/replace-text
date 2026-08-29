@@ -1,0 +1,264 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use utf8;
+use Encode qw(decode_utf8 encode_utf8);
+use File::Basename qw(dirname);
+use File::Temp qw(tempfile);
+use IPC::Open2 qw(open2);
+use IPC::Open3 qw(open3);
+use JSON::PP qw(decode_json encode_json);
+use MIME::Base64 qw(decode_base64 encode_base64);
+use Symbol qw(gensym);
+
+binmode STDIN,  ':encoding(UTF-8)';
+binmode STDOUT, ':encoding(UTF-8)';
+binmode STDERR, ':encoding(UTF-8)';
+
+sub usage {
+	die "用法: replace-text [旧文本 [新文本 [目录]]]\n";
+}
+
+sub shell_quote {
+	my ($text) = @_;
+	$text =~ s/'/'\\''/g;
+	return "'$text'";
+}
+
+sub is_git_tree {
+	my ($path) = @_;
+	my $err = gensym;
+	my $pid = open3(undef, my $out, $err,
+		'git', '-C', encode_utf8($path), 'rev-parse', '--is-inside-work-tree');
+	my $answer = do { local $/; <$out> // '' };
+	{ local $/; <$err>; }
+	waitpid $pid, 0;
+	return $? == 0 && $answer =~ /^true\s*$/;
+}
+
+sub preview {
+	my ($manifest, $id) = @_;
+	open my $fh, '<:raw', encode_utf8($manifest) or die "$manifest: $!\n";
+	my $items = decode_json(do { local $/; <$fh> });
+	my $item = $items->{$id} or exit 0;
+	my $line = $item->{line};
+	my $start = $line > 5 ? $line - 5 : 1;
+	my $end = $line + 5;
+	if (`command -v bat 2>/dev/null`) {
+		exec 'bat', '--style=numbers', '--color=always',
+			"--highlight-line=$line", "--line-range=$start:$end", '--', encode_utf8($item->{path});
+	}
+	exec 'sed', '-n', "${start},${end}p", '--', encode_utf8($item->{path});
+}
+
+sub preview_record {
+	my ($encoded_path, $line) = @_;
+	my $path = decode_utf8(decode_base64($encoded_path), 1);
+	my $start = $line > 5 ? $line - 5 : 1;
+	my $end = $line + 5;
+	if (`command -v bat 2>/dev/null`) {
+		exec 'bat', '--style=numbers', '--color=always',
+			"--highlight-line=$line", "--line-range=$start:$end", '--', encode_utf8($path);
+	}
+	exec 'sed', '-n', "${start},${end}p", '--', encode_utf8($path);
+}
+
+sub find_matches {
+	my ($old, $root) = @_;
+	return () unless length $old;
+	my @matches;
+	open my $rg, '-|', 'rg', '--json', '--fixed-strings', '--', encode_utf8($old), encode_utf8($root)
+		or die "无法运行 rg: $!\n";
+	while (my $json = <$rg>) {
+		my $event = eval { decode_json($json) } or next;
+		next unless $event->{type} eq 'match';
+		my $data = $event->{data};
+		my $path = $data->{path}{text};
+		my $line_text = $data->{lines}{text};
+		$line_text =~ s/[\r\n]+\z//;
+		$line_text =~ s/\t/    /g;
+		for my $sub (@{$data->{submatches}}) {
+			push @matches, {
+				path   => $path,
+				line   => $data->{line_number},
+				column => $sub->{start} + 1,
+				offset => $data->{absolute_offset} + $sub->{start},
+				text   => $line_text,
+			};
+		}
+	}
+	close $rg;
+	return @matches;
+}
+
+sub print_matches {
+	my ($old, $root) = @_;
+	for my $item (find_matches($old, $root)) {
+		my $encoded_path = encode_base64(encode_utf8($item->{path}), '');
+		printf "%s\t%d\t%d\t%d\t%s:%d:%d\t%s\n",
+			$encoded_path, $item->{offset}, $item->{line}, $item->{column},
+			$item->{path}, $item->{line}, $item->{column}, $item->{text};
+	}
+}
+
+sub prepare_files {
+	my ($chosen, $old, $new) = @_;
+	my $old_bytes = encode_utf8($old);
+	my $new_bytes = encode_utf8($new);
+	my $green = "\e[1;32m";
+	my $reset = "\e[0m";
+	my %grouped;
+	push @{$grouped{$_->{path}}}, $_ for @$chosen;
+	my %prepared;
+	for my $path (sort keys %grouped) {
+		my $raw_path = encode_utf8($path);
+		open my $in, '<:raw', $raw_path or die "$path: $!\n";
+		my $content = do { local $/; <$in> };
+		close $in;
+		my $modified = $content;
+		my $display = $content;
+		for my $item (sort { $b->{offset} <=> $a->{offset} } @{$grouped{$path}}) {
+			my $found = substr($content, $item->{offset}, length $old_bytes);
+			$found eq $old_bytes
+				or die "$path:$item->{line}: 内容在选择后发生变化，未写入任何文件\n";
+			substr($modified, $item->{offset}, length $old_bytes, $new_bytes);
+			substr($display, $item->{offset}, length $old_bytes,
+				$green . $new_bytes . $reset);
+		}
+		$prepared{$path} = {
+			content  => $content,
+			modified => $modified,
+			display  => $display,
+			items    => $grouped{$path},
+		};
+	}
+	return \%prepared;
+}
+
+sub replacement_summary {
+	my ($prepared, $count) = @_;
+	my $summary = sprintf "\e[1m替换摘要：%d 处，%d 个文件\e[0m\n\n",
+		$count, scalar(keys %$prepared);
+	for my $path (sort keys %$prepared) {
+		my $file = $prepared->{$path};
+		my @lines = split /\n/, decode_utf8($file->{display}, 1), -1;
+		my %targets = map { $_->{line} => 1 } @{$file->{items}};
+		my @target_lines = sort { $a <=> $b } keys %targets;
+		my @ranges;
+		for my $line (@target_lines) {
+			my $start = $line > 2 ? $line - 2 : 1;
+			my $end = $line + 2 < @lines ? $line + 2 : scalar @lines;
+			if (@ranges && $start <= $ranges[-1][1] + 1) {
+				$ranges[-1][1] = $end if $end > $ranges[-1][1];
+			} else {
+				push @ranges, [$start, $end];
+			}
+		}
+		for my $range (@ranges) {
+			my ($start, $end) = @$range;
+			$summary .= sprintf "\e[1;36m%s:%d-%d\e[0m\n", $path, $start, $end;
+			for my $number ($start .. $end) {
+				my $marker = $targets{$number} ? "\e[1;33m>\e[0m" : ' ';
+				$summary .= sprintf "%s %5d │ %s\n", $marker, $number, $lines[$number - 1];
+			}
+			$summary .= "\n";
+		}
+	}
+	return $summary;
+}
+
+sub show_summary {
+	my ($summary) = @_;
+	open my $pager, '|-', 'less', '-R', '-F', '-X'
+		or die "无法运行 less: $!\n";
+	binmode $pager, ':encoding(UTF-8)';
+	print {$pager} $summary;
+	close $pager or die "less 异常退出\n";
+}
+
+@ARGV = map { decode_utf8($_, 1) } @ARGV;
+
+if (@ARGV && $ARGV[0] eq '--preview') {
+	@ARGV == 3 or usage();
+	preview($ARGV[1], $ARGV[2]);
+}
+if (@ARGV && $ARGV[0] eq '--preview-record') {
+	@ARGV == 3 or usage();
+	preview_record($ARGV[1], $ARGV[2]);
+}
+if (@ARGV && $ARGV[0] eq '--search') {
+	@ARGV == 3 or usage();
+	print_matches($ARGV[2], $ARGV[1]);
+	exit 0;
+}
+
+@ARGV <= 3 or usage();
+my ($old, $new, $root) = @ARGV;
+$old = '' unless defined $old;
+$root = '.' unless defined $root;
+-d $root or die "不是目录: $root\n";
+
+my $self = $0;
+my $search_cmd = join ' ', shell_quote($self), '--search', shell_quote($root), '{q}';
+my $change_search_cmd = "sleep 0.08; $search_cmd";
+my $preview_cmd = join ' ', shell_quote($self), '--preview-record', '{1}', '{3}';
+my $reload_bind = "start:reload($search_cmd),change:reload($change_search_cmd)," .
+	'ctrl-a:select-all,ctrl-d:deselect-all,tab:toggle+down';
+my ($selected, $candidates);
+my $pid = open2($selected, $candidates,
+	'fzf', '--multi', '--disabled', '--phony', '--print-query',
+	'--delimiter=\t', '--with-nth=5..', encode_utf8("--query=$old"),
+	encode_utf8("--bind=$reload_bind"), encode_utf8('--prompt=查找> '),
+	encode_utf8("--preview=$preview_cmd"), '--preview-window=right,60%');
+binmode $selected, ':encoding(UTF-8)';
+close $candidates;
+defined($old = <$selected>) or exit 0;
+chomp $old;
+length $old or exit 0;
+my @chosen;
+while (my $line = <$selected>) {
+	chomp $line;
+	my ($encoded_path, $offset, $line_number, $column) = split /\t/, $line, 5;
+	next unless defined $column;
+	push @chosen, {
+		path   => decode_utf8(decode_base64($encoded_path), 1),
+		offset => 0 + $offset,
+		line   => 0 + $line_number,
+		column => 0 + $column,
+	};
+}
+close $selected;
+waitpid $pid, 0;
+exit 0 unless @chosen;
+
+unless (defined $new) {
+	print STDERR "替换为: ";
+	defined($new = <STDIN>) or die "未输入替换文本\n";
+	chomp $new;
+}
+
+my %files;
+push @{$files{$_->{path}}}, $_ for @chosen;
+my $prepared = prepare_files(\@chosen, $old, $new);
+show_summary(replacement_summary($prepared, scalar @chosen));
+printf STDERR "将 %d 处 [%s] 替换为 [%s]，继续？[y/N] ", scalar(@chosen), $old, $new;
+my $answer = <STDIN> // '';
+exit 0 unless $answer =~ /^y(?:es)?\s*$/i;
+
+# 再次整体校验并生成最终内容；任何目标失效时，在写入第一个文件前终止。
+$prepared = prepare_files(\@chosen, $old, $new);
+for my $path (sort keys %files) {
+	my $raw_path = encode_utf8($path);
+	my @stat = stat $raw_path;
+	my ($out, $tmp_path) = tempfile('.replace-text-XXXXXX', DIR => dirname($raw_path), UNLINK => 0);
+	binmode $out, ':raw';
+	print {$out} $prepared->{$path}{modified} or die "$tmp_path: $!\n";
+	close $out or die "$tmp_path: $!\n";
+	chmod($stat[2] & 07777, $tmp_path) or die "$tmp_path: $!\n";
+	rename($tmp_path, $raw_path) or die "$tmp_path -> $path: $!\n";
+}
+
+printf STDERR "已替换 %d 处，涉及 %d 个文件。\n", scalar(@chosen), scalar(keys %files);
+if (is_git_tree($root)) {
+	system 'git', '-C', encode_utf8($root), '--no-pager', 'diff', '--stat';
+}

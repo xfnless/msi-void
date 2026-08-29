@@ -1,0 +1,52 @@
+﻿# Rime schema settings
+# encoding: utf-8
+
+schema:
+  schema_id: new
+  name: 新
+  version: "1.0"
+
+engine:
+  processors:
+    - ascii_composer
+    - lua_processor@tab_split_code
+    - key_binder
+    - recognizer
+    - speller
+    - punctuator
+    - selector
+    - navigator
+    - express_editor
+  segmentors:
+    - ascii_segmentor
+    - matcher
+    - abc_segmentor
+    - fallback_segmentor
+  translators:
+    - table_translator
+  filters:
+    - uniquifier
+
+speller:
+  alphabet: "qwertyuiopasdfghjkl;zxcvbnm"
+  auto_select: true
+  max_code_length: 4
+  auto_clear: max_length
+
+translator:
+  dictionary: new
+  enable_sentence: false
+  enable_user_dict: false
+  enable_encoder: false
+  enable_completion: false
+  encode_commit_history: false
+  initial_quality: 1
+
+menu:
+  page_size: 5
+  alternative_select_labels: ["", "", "", "", ""]
+
+key_binder:
+  bindings:
+    - { accept: semicolon, send: 2, when: has_menu }
+    - { accept: /, send: 3, when: has_menu }

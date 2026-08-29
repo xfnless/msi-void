@@ -1,0 +1,15 @@
+#!/bin/sh
+# ASUS FA401KM + iwlwifi：s2idle 唤醒后关联经常卡住
+IFACE=wlp99s0
+
+sleep 2
+iw dev "$IFACE" set power_save off 2>/dev/null || true
+
+if wpa_cli -i "$IFACE" ping >/dev/null 2>&1; then
+	wpa_cli -i "$IFACE" reconnect >/dev/null 2>&1 || true
+else
+	sv force-restart wpa_supplicant >/dev/null 2>&1 || true
+	sleep 1
+	dhcpcd --rebind "$IFACE" >/dev/null 2>&1 || true
+fi
+iw dev "$IFACE" set power_save off 2>/dev/null || true

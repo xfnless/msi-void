@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# 手动安装包 → fzf 多选删除（按包名，不查 install-date）
+set -euo pipefail
+
+xbps-query -m | sed 's/-[0-9].*//' |
+	sort -u |
+	awk '{print $0 "\t" $0}' |
+	fzf -q "${*:-}" --multi \
+		--delimiter=$'\t' \
+		--with-nth=1 \
+		--header='手动安装包；Tab 多选后删除' \
+		--preview-window='right,60%,wrap' \
+		--preview 'xbps-query {2}' |
+	awk -F '\t' '{print $2}' |
+	xargs -r -o sudo xbps-remove -R

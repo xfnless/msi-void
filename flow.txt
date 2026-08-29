@@ -1,0 +1,29 @@
+# Run the common scripts, then only the block for this machine.
+void-installer
+# Reboot and log in.
+sudo sh 10-set-hosts.sh
+sh 15-xbps-repos.sh
+sh 20-pkg-base.sh
+sh 30-keyd.sh
+sh 40-sv-base.sh
+sh 50-link-home.sh
+sh 60-pkg-apps.sh
+sh 65-vis.sh
+sh 70-link-apps.sh
+sh 90-helium.sh
+
+# MSI
+sh msi/16-ignore-unused.sh
+sh msi/20-pkg-hardware.sh
+sh msi/40-host-services.sh
+sh msi/70-link-host.sh
+sh msi/80-grub.sh
+sh msi/85-power.sh
+
+# ASUS
+sh asus/16-ignore-unused.sh
+sh asus/20-pkg-hardware.sh
+sh asus/40-host-services.sh
+sh asus/70-link-host.sh
+sh asus/80-grub.sh
+sh asus/85-power.sh

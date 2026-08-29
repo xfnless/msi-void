@@ -1,0 +1,14 @@
+#!/bin/sh
+# 由 update-grub 调用：往 grub.cfg 里插入一条 Windows 菜单。
+# 文件名 09_ 保证排在 10_linux（Void）前面 → 菜单顺序 Win、Void。
+#
+# UUID 0009-85C1 = 本机 EFI 分区（fat）；换盘后用 lsblk -f 看新 UUID 再改。
+
+cat <<'EOF'
+menuentry 'Windows' --class windows --class os {
+    insmod part_gpt
+    insmod fat
+    search --no-floppy --fs-uuid --set=root 0009-85C1
+    chainloader /EFI/Microsoft/Boot/bootmgfw.efi
+}
+EOF

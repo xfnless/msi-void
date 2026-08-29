@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# 搜仓库并安装。用法: xbs [关键词]
+# 无参数 = 全部；源来自系统 xbps 配置（xbps-query -L / xmirror）
+# 左边: repo 标签 + 包名；右边: 精简详情
+set -euo pipefail
+
+xbs_empty_conf=$(mktemp -d)
+trap 'rm -rf "$xbs_empty_conf"' EXIT
+
+# 从系统已启用仓库列出：tag<TAB>url
+xbs_system_repos() {
+	xbps-query -L 2>/dev/null | awk '
+	$2 ~ /^https?:\/\// {
+		url = $2
+		tag = "main"
+		if (url ~ /\/multilib\/nonfree\/?$/) tag = "ml-nf"
+		else if (url ~ /\/nonfree\/?$/) tag = "nonfree"
+		else if (url ~ /\/multilib\/?$/) tag = "multilib"
+		else if (url ~ /\/debug\/?$/) tag = "debug"
+		else {
+			n = split(url, a, "/")
+			last = a[n]
+			if (last != "" && last != "current" && last != "musl")
+				tag = last
+		}
+		print tag "\t" url
+	}'
+}
+
+# 左边已有 repo+包名。预览隐藏: architecture maintainer sha256 source* shlib-*
+xbs_preview() {
+	local pkg=${1:-}
+	[[ -n $pkg ]] || return 0
+	xbps-query -R "$pkg" 2>/dev/null | awk '
+	function trim(s) {
+		sub(/^:[ \t]*/, "", s)
+		return s
+	}
+	# 顶层字段开始：结束当前列表收集
+	/^[a-zA-Z0-9_-]+:/ {
+		collect = ""
+		key = $0
+		sub(/:.*/, "", key)
+		val = $0
+		sub(/^[^:]+:[ \t]*/, "", val)
+
+		if (key == "short_desc") { desc = val; next }
+		if (key == "pkgver") { ver = val; next }
+		if (key == "installed_size") { isize = val; next }
+		if (key == "filename-size") { dsize = val; next }
+		if (key == "license") { lic = val; next }
+		if (key == "homepage") { home = val; next }
+		if (key == "changelog") { clog = val; next }
+		if (key == "build-options") { bopts = val; next }
+
+		if (key == "run_depends") { collect = "deps"; next }
+		if (key == "conflicts") { collect = "conflicts"; next }
+		if (key == "replaces") { collect = "replaces"; next }
+		if (key == "provides") { collect = "provides"; next }
+		if (key == "alternatives") { collect = "alternatives"; next }
+		if (key == "conf_files") { collect = "conf"; next }
+		if (key == "preserve") { collect = "preserve"; next }
+
+		# 忽略：pkgname/repository（左侧已有）、architecture、maintainer、
+		# filename-sha256、shlib-*、source*
+		next
+	}
+	# 列表续行（前导空白）
+	collect != "" && /^[ \t]/ {
+		line = $0
+		sub(/^[ \t]+/, "", line)
+		if (collect == "deps") deps = deps "  " line "\n"
+		else if (collect == "conflicts") conflicts = conflicts "  " line "\n"
+		else if (collect == "replaces") replaces = replaces "  " line "\n"
+		else if (collect == "provides") provides = provides "  " line "\n"
+		else if (collect == "alternatives") alternatives = alternatives "  " line "\n"
+		else if (collect == "conf") conf = conf "  " line "\n"
+		else if (collect == "preserve") preserve = preserve "  " line "\n"
+		next
+	}
+	END {
+		if (desc != "") print desc
+		print ""
+		if (ver != "") print "pkgver:      " ver
+		if (isize != "") print "installed:   " isize
+		if (dsize != "") print "download:    " dsize
+		if (lic != "") print "license:     " lic
+		if (home != "") print "homepage:    " home
+		if (clog != "") print "changelog:   " clog
+		if (bopts != "") print "build-options: " bopts
+		if (deps != "") {
+			print ""
+			print "run_depends:"
+			printf "%s", deps
+		}
+		if (conflicts != "") {
+			print ""
+			print "conflicts:"
+			printf "%s", conflicts
+		}
+		if (replaces != "") {
+			print ""
+			print "replaces:"
+			printf "%s", replaces
+		}
+		if (provides != "") {
+			print ""
+			print "provides:"
+			printf "%s", provides
+		}
+		if (alternatives != "") {
+			print ""
+			print "alternatives:"
+			printf "%s", alternatives
+		}
+		if (conf != "") {
+			print ""
+			print "conf_files:"
+			printf "%s", conf
+		}
+		if (preserve != "") {
+			print ""
+			print "preserve:"
+			printf "%s", preserve
+		}
+	}
+	' || printf '无法读取: %s\n' "$pkg"
+}
+export -f xbs_preview
+
+xbs_list_repo() {
+	local tag=$1 url=$2 q=$3
+	xbps-query -C "$xbs_empty_conf" -i --repository="$url" -Rs "$q" | awk -v tag="$tag" '
+	$1 ~ /^\[/ {
+		ver = $2
+		name = ver
+		if (match(ver, /-[0-9]/))
+			name = substr(ver, 1, RSTART - 1)
+		else if (match(ver, /-r[0-9]/))
+			name = substr(ver, 1, RSTART - 1)
+		mark = ($1 == "[*]") ? "*" : " "
+		printf "%s %-7s %s\t%s\n", mark, tag, name, name
+	}'
+}
+
+mapfile -t xbs_repos < <(xbs_system_repos)
+if ((${#xbs_repos[@]} == 0)); then
+	echo "xbs: 未找到已启用的 xbps 仓库（检查 /etc/xbps.d 或 xmirror）" >&2
+	exit 1
+fi
+
+query="${*:-}"
+
+set +e
+selected=$(
+	{
+		for entry in "${xbs_repos[@]}"; do
+			IFS=$'\t' read -r tag url <<<"$entry"
+			[[ -n $tag && -n $url ]] || continue
+			xbs_list_repo "$tag" "$url" "$query"
+		done
+	} | sort -u -t $'\t' -k2,2 |
+		fzf -q "$query" --multi \
+			--delimiter=$'\t' \
+			--with-nth=1 \
+			--header='左边: repo 包名  (*已装)   Tab多选 Enter安装 Esc取消  | 源=系统xbps' \
+			--preview-window='right,55%,wrap,border-left' \
+			--preview 'xbs_preview {2}'
+)
+fzf_status=$?
+set -e
+
+[[ $fzf_status -eq 0 && -n ${selected:-} ]] || exit 0
+
+mapfile -t pkgs < <(printf '%s\n' "$selected" | awk -F '\t' 'NF >= 2 { print $2 }')
+((${#pkgs[@]} > 0)) || exit 0
+
+sudo xbps-install -S "${pkgs[@]}"

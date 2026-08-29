@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# 所有已安装包 → fzf 多选删除（按包名，不查 install-date）
+set -euo pipefail
+
+xbps-query -l | awk '$1 == "ii" {
+	name=$2
+	sub(/-[0-9].*/, "", name)
+	print name "\t" name
+}' |
+	sort -u |
+	fzf -q "${*:-}" --multi \
+		--delimiter=$'\t' \
+		--with-nth=1 \
+		--header='所有已安装包；Tab 多选后删除' \
+		--preview-window='right,60%,wrap' \
+		--preview 'xbps-query {2}' |
+	awk -F '\t' '{print $2}' |
+	xargs -r -o sudo xbps-remove -R

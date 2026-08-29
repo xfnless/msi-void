@@ -1,0 +1,11 @@
+"\e[A": history-search-backward   # ↑ 搜索以当前输入开头的历史命令
+"\e[B": history-search-forward    # ↓ 搜索历史
+set history-preserve-point on     # 保持光标位置
+set completion-ignore-case on
+set mark-symlinked-directories on
+#set show-all-if-ambiguous on   # Tab 自动补全时直接列出选项
+set bell-style none
+set colored-stats on       # ls 风格颜色显示补全内容
+set visible-stats on
+set completion-display-width 0  # 自动适应终端宽度
+set skip-completed-text on    # Tab 时不重复输入已补全部分

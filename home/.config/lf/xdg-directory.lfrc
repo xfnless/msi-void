@@ -1,0 +1,12 @@
+# XDG directory chooser: Enter selects the highlighted directory.
+# l/right remain navigation keys.
+cmd xdg-accept-directory ${{
+    [ -n "${LF_XDG_OUT:-}" ] || exit 1
+    [ -d "$f" ] || exit 1
+    printf '%s\n' "$f" > "$LF_XDG_OUT"
+    lf -remote "send $id quit"
+}}
+
+map <enter> xdg-accept-directory
+map l open
+map <right> open

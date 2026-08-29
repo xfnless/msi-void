@@ -1,0 +1,20 @@
+#!/bin/sh
+
+# ASUS laptop defaults. These sysfs values are runtime-only and must be
+# restored on every boot.
+battery=/sys/class/power_supply/BAT0/charge_control_end_threshold
+profile=/sys/firmware/acpi/platform_profile
+
+if [ -w "$battery" ]; then
+    printf '80\n' > "$battery"
+fi
+
+if [ -w "$profile" ]; then
+    printf 'quiet\n' > "$profile"
+fi
+
+# iwlwifi：开机关掉运行时省电（模块参数要重启才完全生效）
+iw dev wlp99s0 set power_save off 2>/dev/null || true
+if ! pgrep -f 'wpa_cli .*action-reconnect' >/dev/null 2>&1; then
+	wpa_cli -i wlp99s0 -a /etc/wpa_supplicant/action-reconnect.sh -B >/dev/null 2>&1 || true
+fi

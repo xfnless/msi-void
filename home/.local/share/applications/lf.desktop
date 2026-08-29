@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=lf
+GenericName=File Manager
+Comment=Browse files in lf
+Exec=alacritty -e lf %f
+Icon=system-file-manager
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+NoDisplay=true

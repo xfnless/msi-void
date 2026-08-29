@@ -1,0 +1,7 @@
+#!/bin/sh
+# Keep the tri project unchanged; select the host config linked into XDG_CONFIG_HOME.
+set -eu
+script=$(readlink -f "$0" 2>/dev/null) || script=$0
+repo=$(CDPATH= cd -- "$(dirname -- "$script")/../../.." && pwd)
+export TRI_CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/tri/config
+exec "$repo/home/.config/tri/session.sh" "$@"

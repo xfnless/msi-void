@@ -1,0 +1,18 @@
+*.swp
+*~
+.DS_Store
+
+# Local state and private material never belong in the public config tree.
+Documents/
+**/.cache/
+**/.bash_history
+**/.lesshst
+**/.local/share/lf/history
+**/accounts.json
+**/pppuser.csv
+
+# Build state; tri's own .gitignore keeps only its portable final binary.
+**/.zig-cache/
+**/zig-pkg/
+**/.tri-build.*
+**/zig-out/bin/tri.previous

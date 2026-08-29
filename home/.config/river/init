@@ -1,0 +1,3 @@
+#!/bin/sh
+# Start tri WM; optional session helpers (paths absolute where needed).
+exec tri

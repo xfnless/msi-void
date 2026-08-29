@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Vis
+GenericName=Text Editor
+Comment=Edit text files in Vis
+Exec=alacritty -e vis %F
+Icon=accessories-text-editor
+Terminal=false
+Categories=Utility;TextEditor;
+MimeType=text/plain;text/markdown;text/css;text/csv;text/tab-separated-values;text/x-csrc;text/x-c++src;text/x-python;text/x-shellscript;application/json;application/javascript;application/xml;text/xml;
+NoDisplay=true

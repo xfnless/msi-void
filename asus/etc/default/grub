@@ -1,0 +1,15 @@
+# GRUB 行为（/etc/default/grub）— ASUS FA401KM
+#
+# GRUB_DEFAULT=0 / GRUB_TIMEOUT=0
+#   Void GRUB 不显示菜单，立即启动第一项（Void 内核）。
+#   默认进 Windows 靠主板 EFI 启动顺序，不靠 GRUB 菜单。
+#
+# GRUB_CMDLINE_LINUX_DEFAULT
+#   gpiolib_acpi.run_edge_events_on_boot=0：避开本机 ACPI GPIO 启动噪音。
+
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=0
+GRUB_DISTRIBUTOR="Void"
+GRUB_CMDLINE_LINUX_DEFAULT="loglevel=4 gpiolib_acpi.run_edge_events_on_boot=0 modprobe.blacklist=nouveau"
+GRUB_DISABLE_RECOVERY=true
+GRUB_DISABLE_SUBMENU=true

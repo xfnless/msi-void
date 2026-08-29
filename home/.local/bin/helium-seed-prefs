@@ -1,0 +1,53 @@
+#!/bin/sh
+# 把仓库里的 Helium UI/主题默认值合并进用户 Preferences（浏览器未运行时调用）
+set -eu
+
+seed=${HELIUM_SEED:-$HOME/voidlinux-config/etc/helium/initial_preferences}
+profile=${HELIUM_PROFILE:-$HOME/.config/net.imput.helium}
+prefs=$profile/Default/Preferences
+stamp=$profile/.seed-hash
+opt=${HELIUM_OPT:-$HOME/.local/opt/helium}
+
+[ -f "$seed" ] || exit 0
+
+# 装到 Helium 目录，供全新 profile 的 initial_preferences 使用
+if [ -d "$opt" ]; then
+	cp -f "$seed" "$opt/initial_preferences"
+	cp -f "$seed" "$opt/master_preferences"
+fi
+
+# 浏览器正在跑则跳过，避免写盘被覆盖/弄坏
+[ -e "$profile/SingletonLock" ] && exit 0
+
+mkdir -p "$profile/Default"
+hash=$(cksum <"$seed" | awk '{print $1"-"$2}')
+old=
+[ -f "$stamp" ] && old=$(cat "$stamp")
+
+# 无 Preferences：直接作为初始文件
+if [ ! -f "$prefs" ]; then
+	cp -f "$seed" "$prefs"
+	printf '%s\n' "$hash" >"$stamp"
+	exit 0
+fi
+
+# seed 未变则不动
+[ "$hash" = "$old" ] && exit 0
+
+# 深度合并 seed → Preferences（seed 覆盖同名键）
+node -e '
+const fs = require("fs");
+const seed = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const prefsPath = process.argv[2];
+let prefs = {};
+try { prefs = JSON.parse(fs.readFileSync(prefsPath, "utf8")); } catch (_) {}
+function merge(a, b) {
+  if (b === null || typeof b !== "object" || Array.isArray(b)) return b;
+  const out = (a && typeof a === "object" && !Array.isArray(a)) ? { ...a } : {};
+  for (const [k, v] of Object.entries(b)) out[k] = merge(out[k], v);
+  return out;
+}
+fs.writeFileSync(prefsPath, JSON.stringify(merge(prefs, seed)));
+' "$seed" "$prefs"
+
+printf '%s\n' "$hash" >"$stamp"
