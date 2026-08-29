@@ -27,7 +27,7 @@ start.idle = exec swayidle -w timeout 180 "swaylock -f -i $HOME/.config/river/bg
 # Modifiers: Super, Ctrl, Shift, Alt. Delete a line to disable it.
 bind.Super+a = exec alacritty
 bind.Super+c = exec firefox
-bind.Super+t = exec telegram-desktop
+bind.Super+z = exec Telegram
 bind.Super+v = exec alacritty -e vis "$HOME/Drafts/memo/inbox.md"
 bind.Super+w = grim - | satty -f - --copy-command wl-copy --early-exit copy
 bind.Super+Escape = wlopm --toggle '*'
