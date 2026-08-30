@@ -1,6 +1,6 @@
 import van from "../vendor/van-1.6.1.js";
 import {createAPI, APIError} from "./api.js";
-import {createVault, decryptObject, unlockVault} from "./crypto.js";
+import {createVault, decryptObject, deriveVaultAccess} from "./crypto.js";
 import {createEntry, validateObject} from "./model.js";
 import {createRepository} from "./repository.js";
 import {createSaveCoordinator} from "./save.js";
@@ -10,30 +10,15 @@ const {button, div, form, h1, input, label, main, p, section, span, textarea} = 
 const root = document.querySelector("#app");
 const api = createAPI();
 
-renderLogin();
+initialize();
 
-function renderLogin(message = "") {
-  const error = van.state(message);
-  const token = input({type: "password", autocomplete: "current-password", required: true});
-  const submit = button({type: "submit", class: "primary"}, "进入");
-  mount(authShell("Text Vault", "你的加密工作台", form({onsubmit: async event => {
-    event.preventDefault();
-    submit.disabled = true;
-    error.val = "";
-    try {
-      await api.login(token.value);
-      try {
-        renderUnlock(await api.vault());
-      } catch (cause) {
-        if (cause instanceof APIError && cause.status === 404) renderSetup();
-        else throw cause;
-      }
-    } catch (cause) {
-      error.val = cause?.status === 401 ? "访问口令不正确" : "无法连接服务器";
-      submit.disabled = false;
-    }
-  }}, label({class: "field"}, span("访问口令"), token), p({class: "form-error", role: "alert"}, error), submit)));
-  token.focus();
+async function initialize() {
+  try {
+    renderUnlock(await api.vault());
+  } catch (cause) {
+    if (cause instanceof APIError && cause.status === 404) renderSetup();
+    else mount(authShell("无法连接", "暂时无法读取保险库。", button({type: "button", class: "primary", onclick: initialize}, "重试")));
+  }
 }
 
 function renderSetup() {
@@ -48,7 +33,7 @@ function renderSetup() {
     error.val = "正在生成密钥…";
     try {
       const created = await createVault(password.value);
-      await api.createVault(created.header);
+      await api.setup(created.header, created.credential);
       await openWorkspace(created.key, {manifest: {generation: 0, objects: {}}, objects: {}});
     } catch (cause) {
       error.val = cause?.message || "创建失败";
@@ -67,7 +52,9 @@ function renderUnlock(header) {
     submit.disabled = true;
     error.val = "正在解锁…";
     try {
-      await openWorkspace(await unlockVault(password.value, header), await api.snapshot());
+      const access = await deriveVaultAccess(password.value, header);
+      await api.login(access.credential);
+      await openWorkspace(access.key, await api.snapshot());
     } catch {
       error.val = "主密码不正确，或保险库数据已损坏";
       submit.disabled = false;
@@ -135,7 +122,7 @@ function renderApplication({repository, workspace, saver, workspaceID}) {
   };
   const tabs = () => {
     const state = workspaceState.val;
-    return div({class: "tabs-track"}, state.tabs.map(tab => button({type: "button", class: `tab${tab.id === state.activeTabId ? " active" : ""}`, onclick: () => workspace.selectTab(tab.id), title: tab.query || "全部条目"}, tab.query || "全部条目")));
+    return div({class: "tabs-track"}, state.tabs.map(tab => div({class: `tab${tab.id === state.activeTabId ? " active" : ""}`}, button({type: "button", class: "tab-select", onclick: () => workspace.selectTab(tab.id), title: tab.query || "全部条目"}, tab.query || "全部条目"), tab.pinned ? button({type: "button", class: "tab-close", "aria-label": `取消固定 ${tab.query || "全部条目"}`, title: "取消固定", onclick: event => { event.stopPropagation(); workspace.closeTab(tab.id); }}, "×") : null)));
   };
   const doSave = async () => {
     message.val = "";
@@ -171,7 +158,7 @@ function renderApplication({repository, workspace, saver, workspaceID}) {
         }
       }}),
       section({class: () => `content-pane ${workspaceState.val.mobilePane === "content" ? "mobile-active" : ""}`}, div({class: "editor-meta"}, span(() => workspaceState.val.selectedEntryId ? "纯文本条目" : "未选择条目"), span({class: "global-message", role: "status"}, message)), content)),
-    section({class: "tabbar", "aria-label": "查询标签"}, van.derive(tabs), button({type: "button", class: "pin-button", onclick: () => workspace.pinCurrent(), title: "固定当前搜索"}, "固定 ＋"))));
+    section({class: "tabbar", "aria-label": "查询标签"}, van.derive(tabs), button({type: "button", class: "pin-button", "aria-label": "固定当前搜索", onclick: () => workspace.pinCurrent(), title: "固定当前搜索"}, "固定 ＋"))));
   syncEditor();
   searchBox.focus();
 }

@@ -6,6 +6,7 @@ const WRAP_AAD = utf8("text-vault:v1:data-key");
 export async function createVault(password) {
   validatePassword(password);
   const salt = randomBytes(16);
+  const authSalt = randomBytes(16);
   const wrappingKey = await deriveWrappingKey(password, salt, KDF_ITERATIONS);
   const generated = await crypto.subtle.generateKey({name: "AES-GCM", length: 256}, true, ["encrypt", "decrypt"]);
   const rawDataKey = new Uint8Array(await crypto.subtle.exportKey("raw", generated));
@@ -17,26 +18,41 @@ export async function createVault(password) {
     header: {
       schemaVersion: 1,
       kdf: {name: "PBKDF2", hash: "SHA-256", iterations: KDF_ITERATIONS, salt: toBase64(salt)},
+      auth: {name: "PBKDF2", hash: "SHA-256", iterations: KDF_ITERATIONS, salt: toBase64(authSalt)},
       wrap: {name: "AES-GCM", iv: toBase64(iv), ciphertext: toBase64(wrapped)},
     },
     key,
+    credential: await deriveCredential(password, authSalt, KDF_ITERATIONS),
   };
 }
 
 export async function unlockVault(password, header) {
+  return (await deriveVaultAccess(password, header)).key;
+}
+
+export async function deriveVaultAccess(password, header) {
   validatePassword(password);
   validateHeader(header);
-  const wrappingKey = await deriveWrappingKey(password, fromBase64(header.kdf.salt), header.kdf.iterations);
+  const [wrappingKey, credential] = await Promise.all([
+    deriveWrappingKey(password, fromBase64(header.kdf.salt), header.kdf.iterations),
+    deriveCredential(password, fromBase64(header.auth.salt), header.auth.iterations),
+  ]);
   const raw = new Uint8Array(await crypto.subtle.decrypt({
     name: "AES-GCM",
     iv: fromBase64(header.wrap.iv),
     additionalData: WRAP_AAD,
   }, wrappingKey, fromBase64(header.wrap.ciphertext)));
   try {
-    return await importDataKey(raw);
+    return {key: await importDataKey(raw), credential};
   } finally {
     raw.fill(0);
   }
+}
+
+async function deriveCredential(password, salt, iterations) {
+  const material = await crypto.subtle.importKey("raw", utf8(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({name: "PBKDF2", salt, iterations, hash: "SHA-256"}, material, 256);
+  return toBase64(bits).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
 export async function encryptObject(key, metadata, value) {
@@ -91,10 +107,12 @@ function metadataAAD(metadata) {
 function validateHeader(header) {
   if (header?.schemaVersion !== 1 || header.kdf?.name !== "PBKDF2" || header.kdf?.hash !== "SHA-256" ||
       !Number.isSafeInteger(header.kdf?.iterations) || header.kdf.iterations < KDF_ITERATIONS ||
+      header.auth?.name !== "PBKDF2" || header.auth?.hash !== "SHA-256" ||
+      !Number.isSafeInteger(header.auth?.iterations) || header.auth.iterations < KDF_ITERATIONS ||
       header.wrap?.name !== "AES-GCM") {
     throw new TypeError("unsupported vault header");
   }
-  if (fromBase64(header.kdf.salt).byteLength !== 16 || fromBase64(header.wrap.iv).byteLength !== 12) {
+  if (fromBase64(header.kdf.salt).byteLength !== 16 || fromBase64(header.auth.salt).byteLength !== 16 || fromBase64(header.wrap.iv).byteLength !== 12) {
     throw new TypeError("invalid vault header lengths");
   }
   fromBase64(header.wrap.ciphertext);

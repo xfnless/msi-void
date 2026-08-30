@@ -22,20 +22,39 @@ type session struct {
 
 type Manager struct {
 	tokenHash    [32]byte
+	configured   bool
 	secureCookie bool
 	mu           sync.RWMutex
 	sessions     map[[32]byte]session
 }
 
-func New(accessToken string, secureCookie bool) (*Manager, error) {
-	if len(accessToken) < 16 {
-		return nil, errors.New("access token must contain at least 16 characters")
+func New(authHash []byte, secureCookie bool) (*Manager, error) {
+	if len(authHash) != 0 && len(authHash) != sha256.Size {
+		return nil, errors.New("authentication hash must contain 32 bytes")
 	}
-	return &Manager{
-		tokenHash:    sha256.Sum256([]byte(accessToken)),
+	manager := &Manager{
 		secureCookie: secureCookie,
 		sessions:     make(map[[32]byte]session),
-	}, nil
+	}
+	if len(authHash) != 0 {
+		copy(manager.tokenHash[:], authHash)
+		manager.configured = true
+	}
+	return manager, nil
+}
+
+func (m *Manager) SetAuthHash(authHash []byte) error {
+	if len(authHash) != sha256.Size {
+		return errors.New("authentication hash must contain 32 bytes")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.configured {
+		return errors.New("authentication is already configured")
+	}
+	copy(m.tokenHash[:], authHash)
+	m.configured = true
+	return nil
 }
 
 func (m *Manager) Login(w http.ResponseWriter, r *http.Request) bool {
@@ -43,14 +62,22 @@ func (m *Manager) Login(w http.ResponseWriter, r *http.Request) bool {
 	decoder := json.NewDecoder(io.LimitReader(r.Body, 8<<10))
 	decoder.DisallowUnknownFields()
 	var input struct {
-		Token string `json:"token"`
+		Credential string `json:"credential"`
 	}
 	if decoder.Decode(&input) != nil {
 		writeError(w, http.StatusBadRequest, "invalid_request")
 		return false
 	}
-	candidate := sha256.Sum256([]byte(input.Token))
-	if subtle.ConstantTimeCompare(candidate[:], m.tokenHash[:]) != 1 {
+	return m.LoginCredential(w, input.Credential)
+}
+
+func (m *Manager) LoginCredential(w http.ResponseWriter, credential string) bool {
+	candidate := sha256.Sum256([]byte(credential))
+	m.mu.RLock()
+	configured := m.configured
+	expected := m.tokenHash
+	m.mu.RUnlock()
+	if !configured || subtle.ConstantTimeCompare(candidate[:], expected[:]) != 1 {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return false
 	}

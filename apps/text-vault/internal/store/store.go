@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -223,6 +224,51 @@ func (s *Store) CreateVaultHeader(ctx context.Context, header json.RawMessage) e
 		return fmt.Errorf("create vault header: %w", err)
 	}
 	return nil
+}
+
+func (s *Store) CreateVault(ctx context.Context, header json.RawMessage, authHash []byte) error {
+	if len(header) == 0 || len(header) > 64<<10 || !json.Valid(header) || len(authHash) != sha256.Size {
+		return fmt.Errorf("invalid vault setup")
+	}
+	var value map[string]any
+	if err := json.Unmarshal(header, &value); err != nil || value == nil {
+		return fmt.Errorf("vault header must be an object")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin vault setup: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `INSERT INTO metadata(key, value) VALUES ('vault_header', ?)`, []byte(header)); err != nil {
+		if isConstraintError(err) {
+			return ErrConflict
+		}
+		return fmt.Errorf("create vault header: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO metadata(key, value) VALUES ('auth_hash', ?)`, authHash); err != nil {
+		if isConstraintError(err) {
+			return ErrConflict
+		}
+		return fmt.Errorf("create authentication hash: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("finish vault setup: %w", err)
+	}
+	return nil
+}
+
+func (s *Store) AuthHash(ctx context.Context) ([]byte, error) {
+	var value []byte
+	if err := s.db.QueryRowContext(ctx, `SELECT value FROM metadata WHERE key = 'auth_hash'`).Scan(&value); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("read authentication hash: %w", err)
+	}
+	if len(value) != sha256.Size {
+		return nil, fmt.Errorf("invalid authentication hash")
+	}
+	return value, nil
 }
 
 func (s *Store) VaultHeader(ctx context.Context) (json.RawMessage, error) {

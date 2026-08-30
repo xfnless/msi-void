@@ -40,14 +40,18 @@ export function createAPI(fetchFn = fetch) {
   }
 
   return {
-    async login(token) {
-      const result = await request("/api/login", {method: "POST", body: {token}});
+    async login(credential) {
+      const result = await request("/api/login", {method: "POST", body: {credential}});
+      csrfToken = result.csrfToken;
+      return result;
+    },
+    async setup(header, credential) {
+      const result = await request("/api/setup", {method: "POST", body: {header, credential}});
       csrfToken = result.csrfToken;
       return result;
     },
     logout: () => request("/api/logout", {method: "POST", csrf: true}),
     vault: () => request("/api/vault"),
-    createVault: header => request("/api/vault", {method: "PUT", body: header, csrf: true}),
     snapshot: () => request("/api/snapshot"),
     commit: value => request("/api/commit", {method: "POST", body: value, csrf: true}),
   };

@@ -31,7 +31,7 @@ func main() {
 	if len(args) > 0 && args[0] == "serve" {
 		args = args[1:]
 	}
-	cfg, err := parseConfig(args, os.Getenv)
+	cfg, err := parseConfig(args)
 	if err != nil {
 		slog.Error("invalid configuration", "error", err)
 		os.Exit(2)
@@ -42,7 +42,14 @@ func main() {
 		os.Exit(1)
 	}
 	defer database.Close()
-	sessions, err := auth.New(cfg.accessToken, cfg.secureCookie)
+	authHash, err := database.AuthHash(context.Background())
+	if errors.Is(err, store.ErrNotFound) {
+		authHash = nil
+	} else if err != nil {
+		slog.Error("authentication metadata failed", "error", err)
+		os.Exit(1)
+	}
+	sessions, err := auth.New(authHash, cfg.secureCookie)
 	if err != nil {
 		slog.Error("authentication failed", "error", err)
 		os.Exit(2)
@@ -120,11 +127,10 @@ func runBackup(args []string) error {
 type config struct {
 	listen       string
 	database     string
-	accessToken  string
 	secureCookie bool
 }
 
-func parseConfig(args []string, getenv func(string) string) (config, error) {
+func parseConfig(args []string) (config, error) {
 	flags := flag.NewFlagSet("text-vault", flag.ContinueOnError)
 	flags.SetOutput(io.Discard)
 	var cfg config
@@ -133,10 +139,6 @@ func parseConfig(args []string, getenv func(string) string) (config, error) {
 	flags.BoolVar(&cfg.secureCookie, "secure-cookie", true, "require HTTPS session cookies")
 	if err := flags.Parse(args); err != nil {
 		return config{}, err
-	}
-	cfg.accessToken = getenv("TEXT_VAULT_ACCESS_TOKEN")
-	if cfg.accessToken == "" {
-		return config{}, errors.New("TEXT_VAULT_ACCESS_TOKEN is required")
 	}
 	if flags.NArg() != 0 {
 		return config{}, fmt.Errorf("unexpected arguments: %v", flags.Args())

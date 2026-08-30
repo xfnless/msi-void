@@ -1,5 +1,7 @@
 # Text Vault MVP Implementation Plan
 
+> Superseded on 2026-08-30 for authentication only: the implemented interface uses one master password and a separately derived browser credential, as recorded in the design specification. References below to a configured access token describe the original implementation history.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a daily-usable single-user encrypted text workspace with live in-memory search, desktop/mobile navigation, bottom query tabs, one global Save action, and atomic ciphertext persistence.

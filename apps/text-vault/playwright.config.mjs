@@ -15,7 +15,6 @@ export default defineConfig({
   projects: [{name: "chromium", use: {browserName: "chromium"}}],
   webServer: {
     command: "go run ./cmd/text-vault -listen 127.0.0.1:18081 -database .tmp/e2e-data/text-vault.db -secure-cookie=false",
-    env: {...process.env, TEXT_VAULT_ACCESS_TOKEN: "e2e-access-token"},
     url: "http://127.0.0.1:18081/api/health",
     reuseExistingServer: false,
     timeout: 30_000,

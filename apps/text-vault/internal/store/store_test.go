@@ -141,3 +141,28 @@ func TestBackupCreatesAConsistentReopenableDatabase(t *testing.T) {
 		t.Fatalf("backup snapshot = %#v", snapshot)
 	}
 }
+
+func TestVaultSetupStoresHeaderAndAuthenticationHashAtomically(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(filepath.Join(t.TempDir(), "text-vault.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+
+	header := json.RawMessage(`{"schemaVersion":1,"auth":{"salt":"AA=="}}`)
+	authHash := []byte("01234567890123456789012345678901")
+	if err := s.CreateVault(ctx, header, authHash); err != nil {
+		t.Fatal(err)
+	}
+	gotHash, err := s.AuthHash(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(gotHash) != string(authHash) {
+		t.Fatalf("auth hash = %x", gotHash)
+	}
+	if err := s.CreateVault(ctx, header, authHash); !errors.Is(err, ErrConflict) {
+		t.Fatalf("second setup error = %v", err)
+	}
+}

@@ -1,8 +1,9 @@
 package httpapi
 
 import (
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
-	"io"
 	"io/fs"
 	"net/http"
 	"path"
@@ -25,16 +26,7 @@ func New(cfg Config) http.Handler {
 		_ = json.NewEncoder(w).Encode(map[string]bool{"ok": true})
 	})
 	if cfg.Store != nil && cfg.Auth != nil {
-		mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
-			if !isJSON(r) {
-				writeAPIError(w, http.StatusUnsupportedMediaType, "json_required")
-				return
-			}
-			cfg.Auth.Login(w, r)
-		})
-
-		protected := http.NewServeMux()
-		protected.HandleFunc("GET /api/vault", func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("GET /api/vault", func(w http.ResponseWriter, r *http.Request) {
 			header, err := cfg.Store.VaultHeader(r.Context())
 			if err != nil {
 				if err == store.ErrNotFound {
@@ -46,26 +38,45 @@ func New(cfg Config) http.Handler {
 			}
 			writeJSON(w, http.StatusOK, header)
 		})
-		protected.HandleFunc("PUT /api/vault", requireCSRF(cfg.Auth, func(w http.ResponseWriter, r *http.Request) {
+		mux.HandleFunc("POST /api/setup", func(w http.ResponseWriter, r *http.Request) {
 			if !isJSON(r) {
 				writeAPIError(w, http.StatusUnsupportedMediaType, "json_required")
 				return
 			}
-			body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 64<<10))
-			if err != nil || !json.Valid(body) {
-				writeAPIError(w, http.StatusBadRequest, "invalid_vault_header")
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 72<<10))
+			decoder.DisallowUnknownFields()
+			var input struct {
+				Header     json.RawMessage `json:"header"`
+				Credential string          `json:"credential"`
+			}
+			if err := decoder.Decode(&input); err != nil || !validCredential(input.Credential) {
+				writeAPIError(w, http.StatusBadRequest, "invalid_setup")
 				return
 			}
-			if err := cfg.Store.CreateVaultHeader(r.Context(), body); err != nil {
+			hash := sha256.Sum256([]byte(input.Credential))
+			if err := cfg.Store.CreateVault(r.Context(), input.Header, hash[:]); err != nil {
 				if err == store.ErrConflict {
 					writeAPIError(w, http.StatusConflict, "conflict")
 					return
 				}
-				writeAPIError(w, http.StatusBadRequest, "invalid_vault_header")
+				writeAPIError(w, http.StatusBadRequest, "invalid_setup")
 				return
 			}
-			w.WriteHeader(http.StatusNoContent)
-		}))
+			if err := cfg.Auth.SetAuthHash(hash[:]); err != nil {
+				writeAPIError(w, http.StatusInternalServerError, "auth_failed")
+				return
+			}
+			cfg.Auth.LoginCredential(w, input.Credential)
+		})
+		mux.HandleFunc("POST /api/login", func(w http.ResponseWriter, r *http.Request) {
+			if !isJSON(r) {
+				writeAPIError(w, http.StatusUnsupportedMediaType, "json_required")
+				return
+			}
+			cfg.Auth.Login(w, r)
+		})
+
+		protected := http.NewServeMux()
 		protected.HandleFunc("GET /api/snapshot", func(w http.ResponseWriter, r *http.Request) {
 			snapshot, err := cfg.Store.Snapshot(r.Context())
 			if err != nil {
@@ -120,6 +131,11 @@ func New(cfg Config) http.Handler {
 		http.FileServerFS(cfg.Frontend).ServeHTTP(w, r)
 	})
 	return mux
+}
+
+func validCredential(value string) bool {
+	decoded, err := base64.RawURLEncoding.DecodeString(value)
+	return err == nil && len(decoded) == 32
 }
 
 func requireCSRF(manager *auth.Manager, next http.HandlerFunc) http.HandlerFunc {

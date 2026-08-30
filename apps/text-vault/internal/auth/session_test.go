@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"crypto/sha256"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -8,12 +9,14 @@ import (
 )
 
 func TestLoginCreatesSessionWithCSRFProtection(t *testing.T) {
-	manager, err := New("correct-horse-token", false)
+	credential := "derived-browser-credential"
+	hash := sha256.Sum256([]byte(credential))
+	manager, err := New(hash[:], false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	login := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"token":"correct-horse-token"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"credential":"derived-browser-credential"}`))
 	if !manager.Login(login, request) {
 		t.Fatalf("login rejected: %d %s", login.Code, login.Body.String())
 	}
@@ -43,13 +46,34 @@ func TestLoginCreatesSessionWithCSRFProtection(t *testing.T) {
 }
 
 func TestLoginRejectsWrongToken(t *testing.T) {
-	manager, err := New("correct-horse-token", false)
+	hash := sha256.Sum256([]byte("derived-browser-credential"))
+	manager, err := New(hash[:], false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	response := httptest.NewRecorder()
-	request := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"token":"wrong"}`))
+	request := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"credential":"wrong"}`))
 	if manager.Login(response, request) || response.Code != http.StatusUnauthorized {
 		t.Fatalf("wrong login = %d %s", response.Code, response.Body.String())
+	}
+}
+
+func TestUnconfiguredManagerRejectsLoginUntilCredentialIsInstalled(t *testing.T) {
+	manager, err := New(nil, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := func() *http.Request {
+		return httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"credential":"derived-browser-credential"}`))
+	}
+	if manager.Login(httptest.NewRecorder(), request()) {
+		t.Fatal("unconfigured authentication accepted a login")
+	}
+	hash := sha256.Sum256([]byte("derived-browser-credential"))
+	if err := manager.SetAuthHash(hash[:]); err != nil {
+		t.Fatal(err)
+	}
+	if !manager.Login(httptest.NewRecorder(), request()) {
+		t.Fatal("installed authentication hash rejected login")
 	}
 }

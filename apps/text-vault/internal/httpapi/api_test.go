@@ -41,7 +41,7 @@ func TestHealthAndSPA(t *testing.T) {
 var _ fs.FS = fstest.MapFS{}
 
 func TestProtectedVaultSnapshotAndCommit(t *testing.T) {
-	h := newTestAPI(t, "correct-horse-token")
+	h := newTestAPI(t)
 
 	denied := httptest.NewRecorder()
 	h.ServeHTTP(denied, httptest.NewRequest(http.MethodGet, "/api/snapshot", nil))
@@ -50,24 +50,15 @@ func TestProtectedVaultSnapshotAndCommit(t *testing.T) {
 	}
 
 	login := httptest.NewRecorder()
-	loginRequest := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"token":"correct-horse-token"}`))
-	loginRequest.Header.Set("Content-Type", "application/json")
-	h.ServeHTTP(login, loginRequest)
+	credential := strings.Repeat("A", 43)
+	setupRequest := httptest.NewRequest(http.MethodPost, "/api/setup", strings.NewReader(`{"header":{"schemaVersion":1,"auth":{"salt":"AA=="}},"credential":"`+credential+`"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	h.ServeHTTP(login, setupRequest)
 	if login.Code != http.StatusOK {
-		t.Fatalf("login = %d %s", login.Code, login.Body.String())
+		t.Fatalf("setup = %d %s", login.Code, login.Body.String())
 	}
 	cookie := login.Result().Cookies()[0]
 	csrf := login.Header().Get("X-CSRF-Token")
-
-	headerRequest := httptest.NewRequest(http.MethodPut, "/api/vault", strings.NewReader(`{"schemaVersion":1,"wrappedKey":"AA=="}`))
-	headerRequest.AddCookie(cookie)
-	headerRequest.Header.Set("X-CSRF-Token", csrf)
-	headerRequest.Header.Set("Content-Type", "application/json")
-	headerResponse := httptest.NewRecorder()
-	h.ServeHTTP(headerResponse, headerRequest)
-	if headerResponse.Code != http.StatusNoContent {
-		t.Fatalf("create header = %d %s", headerResponse.Code, headerResponse.Body.String())
-	}
 
 	commitRequest := httptest.NewRequest(http.MethodPost, "/api/commit", strings.NewReader(`{"baseGeneration":0,"objects":[{"id":"entry_1234567890","kind":"entry","revision":1,"envelope":{"ciphertext":"AA=="}}]}`))
 	commitRequest.AddCookie(cookie)
@@ -95,14 +86,14 @@ func TestProtectedVaultSnapshotAndCommit(t *testing.T) {
 	}
 }
 
-func newTestAPI(t *testing.T, accessToken string) http.Handler {
+func newTestAPI(t *testing.T) http.Handler {
 	t.Helper()
 	database, err := store.Open(filepath.Join(t.TempDir(), "text-vault.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = database.Close() })
-	sessions, err := auth.New(accessToken, false)
+	sessions, err := auth.New(nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,4 +102,15 @@ func newTestAPI(t *testing.T, accessToken string) http.Handler {
 		Store:    database,
 		Auth:     sessions,
 	})
+}
+
+func TestSetupRejectsMalformedDerivedCredential(t *testing.T) {
+	h := newTestAPI(t)
+	request := httptest.NewRequest(http.MethodPost, "/api/setup", strings.NewReader(`{"header":{"schemaVersion":1},"credential":"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"}`))
+	request.Header.Set("Content-Type", "application/json")
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, request)
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("malformed credential status = %d body=%s", response.Code, response.Body.String())
+	}
 }
