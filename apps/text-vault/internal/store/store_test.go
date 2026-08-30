@@ -166,3 +166,31 @@ func TestVaultSetupStoresHeaderAndAuthenticationHashAtomically(t *testing.T) {
 		t.Fatalf("second setup error = %v", err)
 	}
 }
+
+func TestRotateVaultReplacesHeaderAndAuthenticationHashTogether(t *testing.T) {
+	ctx := context.Background()
+	s, err := Open(filepath.Join(t.TempDir(), "text-vault.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = s.Close() })
+	oldHash := []byte("01234567890123456789012345678901")
+	newHash := []byte("abcdefghijklmnopqrstuvwxyzABCDEF")
+	if err := s.CreateVault(ctx, json.RawMessage(`{"schemaVersion":1,"name":"old"}`), oldHash); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RotateVault(ctx, json.RawMessage(`{"schemaVersion":1,"name":"new"}`), newHash); err != nil {
+		t.Fatal(err)
+	}
+	header, err := s.VaultHeader(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash, err := s.AuthHash(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(header) != `{"schemaVersion":1,"name":"new"}` || string(hash) != string(newHash) {
+		t.Fatalf("rotated header=%s hash=%x", header, hash)
+	}
+}

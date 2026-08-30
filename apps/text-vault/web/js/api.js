@@ -51,6 +51,7 @@ export function createAPI(fetchFn = fetch) {
       return result;
     },
     logout: () => request("/api/logout", {method: "POST", csrf: true}),
+    rekey: (header, credential) => request("/api/rekey", {method: "POST", body: {header, credential}, csrf: true}),
     vault: () => request("/api/vault"),
     snapshot: () => request("/api/snapshot"),
     commit: value => request("/api/commit", {method: "POST", body: value, csrf: true}),

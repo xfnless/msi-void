@@ -5,6 +5,7 @@ export function createRepository(initialObjects = []) {
   const sequences = new Map();
   const committedSequences = new Map();
   const baseRevisions = new Map();
+  const contentDirty = new Map();
   const subscribers = new Set();
 
   for (const value of initialObjects) {
@@ -13,19 +14,23 @@ export function createRepository(initialObjects = []) {
     sequences.set(object.id, 0);
     committedSequences.set(object.id, 0);
     baseRevisions.set(object.id, object.revision);
+    contentDirty.set(object.id, false);
   }
 
   function get(id) {
     return objects.get(id);
   }
 
-  function upsert(value) {
+  // Quiet objects (workspace/layout) join the next persistence batch without
+  // presenting themselves as unsaved user content.
+  function upsert(value, {quiet = false} = {}) {
     const object = structuredClone(validateObject(value));
     const nextSequence = (sequences.get(object.id) ?? 0) + 1;
     objects.set(object.id, object);
     sequences.set(object.id, nextSequence);
     if (!committedSequences.has(object.id)) committedSequences.set(object.id, -1);
     if (!baseRevisions.has(object.id)) baseRevisions.set(object.id, object.revision);
+    if (!quiet) contentDirty.set(object.id, true);
     notify({type: "upsert", id: object.id});
     return object;
   }
@@ -54,6 +59,14 @@ export function createRepository(initialObjects = []) {
   }
 
   function isDirty() {
+    return isContentDirty();
+  }
+
+  function isContentDirty() {
+    return [...contentDirty.values()].some(Boolean);
+  }
+
+  function hasPendingChanges() {
     return [...sequences].some(([id, sequence]) => sequence !== committedSequences.get(id));
   }
 
@@ -78,7 +91,10 @@ export function createRepository(initialObjects = []) {
       baseRevisions.set(captured.id, revision);
       const current = objects.get(captured.id);
       if (current) objects.set(captured.id, {...current, revision});
-      if (sequences.get(captured.id) === captured.sequence) committedSequences.set(captured.id, captured.sequence);
+      if (sequences.get(captured.id) === captured.sequence) {
+        committedSequences.set(captured.id, captured.sequence);
+        contentDirty.set(captured.id, false);
+      }
     }
     notify({type: "commit"});
   }
@@ -92,7 +108,7 @@ export function createRepository(initialObjects = []) {
     for (const subscriber of subscribers) subscriber(event);
   }
 
-  return {get, upsert, remove, search, isDirty, dirtyObjects, captureDirty, markCommitted, updateEntryText, subscribe, values: () => [...objects.values()]};
+  return {get, upsert, remove, search, isDirty, isContentDirty, hasPendingChanges, dirtyObjects, captureDirty, markCommitted, updateEntryText, subscribe, values: () => [...objects.values()]};
 }
 
 function snippet(value, needle) {

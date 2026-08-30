@@ -43,3 +43,19 @@ test("conflict preserves memory and exposes one global state", async () => {
   assert.equal(saver.status(), "conflict");
   assert.equal(repository.get("entry_1234567890").text, "local");
 });
+
+test("quiet workspace changes save without changing the clean status", async () => {
+  const repository = seededRepository();
+  repository.upsert({schemaVersion: 1, id: "workspace_main_01", kind: "workspace", revision: 0, state: {schemaVersion: 1, tabs: []}}, {quiet: true});
+  const key = await crypto.subtle.generateKey({name: "AES-GCM", length: 256}, false, ["encrypt", "decrypt"]);
+  let submitted;
+  const saver = createSaveCoordinator({repository, key, generation: 1, api: {commit: async request => {
+    submitted = request;
+    return {manifest: {generation: 2, objects: {workspace_main_01: {kind: "workspace", revision: 1}, entry_1234567890: {kind: "entry", revision: 1}}}};
+  }}});
+
+  assert.equal(saver.status(), "clean");
+  await saver.save();
+  assert.equal(submitted.objects.length, 1);
+  assert.equal(saver.status(), "clean");
+});

@@ -11,9 +11,11 @@ test("setup and login send only a derived credential to authentication endpoints
 
   await api.setup({schemaVersion: 1}, "derived-credential");
   await api.login("derived-credential");
+  await api.rekey({schemaVersion: 1}, "new-derived-credential");
 
   assert.deepEqual(requests, [
     {path: "/api/setup", body: {header: {schemaVersion: 1}, credential: "derived-credential"}},
     {path: "/api/login", body: {credential: "derived-credential"}},
+    {path: "/api/rekey", body: {header: {schemaVersion: 1}, credential: "new-derived-credential"}},
   ]);
 });

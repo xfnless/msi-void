@@ -108,6 +108,28 @@ func New(cfg Config) http.Handler {
 			}
 			writeJSON(w, http.StatusOK, map[string]any{"manifest": manifest})
 		}))
+		protected.HandleFunc("POST /api/rekey", requireCSRF(cfg.Auth, func(w http.ResponseWriter, r *http.Request) {
+			decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 72<<10))
+			decoder.DisallowUnknownFields()
+			var input struct {
+				Header     json.RawMessage `json:"header"`
+				Credential string          `json:"credential"`
+			}
+			if !isJSON(r) || decoder.Decode(&input) != nil || !validCredential(input.Credential) {
+				writeAPIError(w, http.StatusBadRequest, "invalid_rekey")
+				return
+			}
+			hash := sha256.Sum256([]byte(input.Credential))
+			if err := cfg.Store.RotateVault(r.Context(), input.Header, hash[:]); err != nil {
+				writeAPIError(w, http.StatusBadRequest, "invalid_rekey")
+				return
+			}
+			if err := cfg.Auth.ReplaceAuthHash(hash[:]); err != nil {
+				writeAPIError(w, http.StatusInternalServerError, "auth_failed")
+				return
+			}
+			w.WriteHeader(http.StatusNoContent)
+		}))
 		protected.HandleFunc("POST /api/logout", requireCSRF(cfg.Auth, cfg.Auth.Logout))
 		mux.Handle("/api/", cfg.Auth.Require(protected))
 	}
@@ -130,7 +152,18 @@ func New(cfg Config) http.Handler {
 		}
 		http.FileServerFS(cfg.Frontend).ServeHTTP(w, r)
 	})
-	return mux
+	// API state changes independently of static assets. Disabling HTTP caches here
+	// prevents a browser from reusing the initial vault_not_found response after setup.
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			w.Header().Set("Cache-Control", "no-store")
+		} else {
+			// Assets are not fingerprinted in this no-build application, so force
+			// revalidation after a binary upgrade instead of serving stale JS.
+			w.Header().Set("Cache-Control", "no-cache")
+		}
+		mux.ServeHTTP(w, r)
+	})
 }
 
 func validCredential(value string) bool {

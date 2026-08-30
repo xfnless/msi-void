@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestLoginCreatesSessionWithCSRFProtection(t *testing.T) {
@@ -75,5 +76,68 @@ func TestUnconfiguredManagerRejectsLoginUntilCredentialIsInstalled(t *testing.T)
 	}
 	if !manager.Login(httptest.NewRecorder(), request()) {
 		t.Fatal("installed authentication hash rejected login")
+	}
+}
+
+func TestReplaceAuthHashInvalidatesOldCredentialAndSessions(t *testing.T) {
+	oldCredential := strings.Repeat("A", 43)
+	newCredential := strings.Repeat("B", 43)
+	oldHash := sha256.Sum256([]byte(oldCredential))
+	manager, err := New(oldHash[:], false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	login := httptest.NewRecorder()
+	if !manager.LoginCredential(login, oldCredential) {
+		t.Fatal("old credential did not initially work")
+	}
+	newHash := sha256.Sum256([]byte(newCredential))
+	if err := manager.ReplaceAuthHash(newHash[:]); err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return now }
+	oldSession := httptest.NewRequest(http.MethodGet, "/api/snapshot", nil)
+	oldSession.AddCookie(login.Result().Cookies()[0])
+	called := false
+	manager.Require(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { called = true })).ServeHTTP(httptest.NewRecorder(), oldSession)
+	if called || manager.LoginCredential(httptest.NewRecorder(), oldCredential) {
+		t.Fatal("old authentication survived rotation")
+	}
+	now = now.Add(time.Second)
+	if !manager.LoginCredential(httptest.NewRecorder(), newCredential) {
+		t.Fatal("new credential was rejected")
+	}
+}
+
+func TestFailedLoginTemporarilyThrottlesAttemptsAndSuccessResetsIt(t *testing.T) {
+	credential := strings.Repeat("A", 43)
+	hash := sha256.Sum256([]byte(credential))
+	manager, err := New(hash[:], false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 30, 0, 0, 0, 0, time.UTC)
+	manager.now = func() time.Time { return now }
+
+	wrong := httptest.NewRecorder()
+	manager.LoginCredential(wrong, strings.Repeat("B", 43))
+	if wrong.Code != http.StatusUnauthorized {
+		t.Fatalf("first failure = %d", wrong.Code)
+	}
+	throttled := httptest.NewRecorder()
+	manager.LoginCredential(throttled, credential)
+	if throttled.Code != http.StatusTooManyRequests || throttled.Header().Get("Retry-After") == "" {
+		t.Fatalf("throttled = %d retry=%q", throttled.Code, throttled.Header().Get("Retry-After"))
+	}
+
+	now = now.Add(time.Second)
+	if !manager.LoginCredential(httptest.NewRecorder(), credential) {
+		t.Fatal("correct credential was rejected after delay")
+	}
+	afterSuccess := httptest.NewRecorder()
+	manager.LoginCredential(afterSuccess, strings.Repeat("B", 43))
+	if afterSuccess.Code != http.StatusUnauthorized {
+		t.Fatalf("failure state was not reset: %d", afterSuccess.Code)
 	}
 }

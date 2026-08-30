@@ -44,3 +44,14 @@ test("empty query returns newest entries first and search is case insensitive", 
   assert.equal(repository.search("")[0].id, "entry_second_0001");
   assert.equal(repository.search("example.com")[0].id, "entry_second_0001");
 });
+
+test("quiet workspace changes are pending without alarming the user", () => {
+  const workspace = {schemaVersion: 1, id: "workspace_main_01", kind: "workspace", revision: 1, state: {schemaVersion: 1, tabs: []}};
+  const repository = createRepository([workspace]);
+
+  repository.upsert({...workspace, state: {...workspace.state, splitRatio: 0.42}}, {quiet: true});
+
+  assert.equal(repository.hasPendingChanges(), true);
+  assert.equal(repository.isContentDirty(), false);
+  assert.equal(repository.captureDirty().length, 1);
+});

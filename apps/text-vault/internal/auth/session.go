@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -26,6 +27,9 @@ type Manager struct {
 	secureCookie bool
 	mu           sync.RWMutex
 	sessions     map[[32]byte]session
+	failedLogins int
+	blockedUntil time.Time
+	now          func() time.Time
 }
 
 func New(authHash []byte, secureCookie bool) (*Manager, error) {
@@ -35,6 +39,7 @@ func New(authHash []byte, secureCookie bool) (*Manager, error) {
 	manager := &Manager{
 		secureCookie: secureCookie,
 		sessions:     make(map[[32]byte]session),
+		now:          time.Now,
 	}
 	if len(authHash) != 0 {
 		copy(manager.tokenHash[:], authHash)
@@ -54,6 +59,24 @@ func (m *Manager) SetAuthHash(authHash []byte) error {
 	}
 	copy(m.tokenHash[:], authHash)
 	m.configured = true
+	m.failedLogins = 0
+	m.blockedUntil = time.Time{}
+	return nil
+}
+
+func (m *Manager) ReplaceAuthHash(authHash []byte) error {
+	if len(authHash) != sha256.Size {
+		return errors.New("authentication hash must contain 32 bytes")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	copy(m.tokenHash[:], authHash)
+	m.configured = true
+	m.failedLogins = 0
+	m.blockedUntil = time.Time{}
+	// A password change is also a session rotation. Existing browser sessions
+	// cannot continue writing with credentials derived from the old password.
+	clear(m.sessions)
 	return nil
 }
 
@@ -72,15 +95,34 @@ func (m *Manager) Login(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (m *Manager) LoginCredential(w http.ResponseWriter, credential string) bool {
+	now := m.now()
+	m.mu.RLock()
+	blockedUntil := m.blockedUntil
+	m.mu.RUnlock()
+	if now.Before(blockedUntil) {
+		retry := int(blockedUntil.Sub(now).Seconds()) + 1
+		w.Header().Set("Retry-After", strconv.Itoa(retry))
+		writeError(w, http.StatusTooManyRequests, "try_later")
+		return false
+	}
 	candidate := sha256.Sum256([]byte(credential))
 	m.mu.RLock()
 	configured := m.configured
 	expected := m.tokenHash
 	m.mu.RUnlock()
 	if !configured || subtle.ConstantTimeCompare(candidate[:], expected[:]) != 1 {
+		m.mu.Lock()
+		m.failedLogins++
+		exponent := min(m.failedLogins-1, 5)
+		m.blockedUntil = now.Add(time.Second * time.Duration(1<<exponent))
+		m.mu.Unlock()
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return false
 	}
+	m.mu.Lock()
+	m.failedLogins = 0
+	m.blockedUntil = time.Time{}
+	m.mu.Unlock()
 	sessionID, err := randomToken()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "random_failed")

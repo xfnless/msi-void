@@ -2,18 +2,20 @@ import {encryptObject} from "./crypto.js";
 
 export function createSaveCoordinator({repository, api, key, generation = 0}) {
   let currentGeneration = generation;
-  let currentStatus = repository.isDirty() ? "dirty" : "clean";
+  let currentStatus = repository.isContentDirty() ? "dirty" : "clean";
   let activeSave = null;
   const subscribers = new Set();
 
   repository.subscribe(() => {
     if (!activeSave && currentStatus !== "conflict" && currentStatus !== "failed") {
-      setStatus(repository.isDirty() ? "dirty" : "clean");
+      setStatus(repository.isContentDirty() ? "dirty" : "clean");
     }
   });
 
   function save() {
     if (activeSave) return activeSave;
+    // captureDirty includes quiet workspace changes. The status shown to the
+    // user is computed separately from content dirtiness below.
     const captured = repository.captureDirty();
     if (captured.length === 0) {
       setStatus("clean");
@@ -36,7 +38,7 @@ export function createSaveCoordinator({repository, api, key, generation = 0}) {
       currentGeneration = response.manifest.generation;
       const revisions = Object.fromEntries(Object.entries(response.manifest.objects).map(([id, ref]) => [id, ref.revision]));
       repository.markCommitted(captured, revisions);
-      setStatus(repository.isDirty() ? "dirty" : "clean");
+      setStatus(repository.isContentDirty() ? "dirty" : "clean");
       return response.manifest;
     } catch (error) {
       setStatus(error?.name === "ConflictError" ? "conflict" : "failed");

@@ -4,16 +4,76 @@ const KDF_ITERATIONS = 600_000;
 const WRAP_AAD = utf8("text-vault:v1:data-key");
 
 export async function createVault(password) {
-  validatePassword(password);
-  const salt = randomBytes(16);
-  const authSalt = randomBytes(16);
-  const wrappingKey = await deriveWrappingKey(password, salt, KDF_ITERATIONS);
+  validateNewPassword(password);
   const generated = await crypto.subtle.generateKey({name: "AES-GCM", length: 256}, true, ["encrypt", "decrypt"]);
   const rawDataKey = new Uint8Array(await crypto.subtle.exportKey("raw", generated));
-  const iv = randomBytes(12);
-  const wrapped = await crypto.subtle.encrypt({name: "AES-GCM", iv, additionalData: WRAP_AAD}, wrappingKey, rawDataKey);
   const key = await importDataKey(rawDataKey);
-  rawDataKey.fill(0);
+  try {
+    return {...await wrapRawDataKey(password, rawDataKey), key};
+  } finally {
+    rawDataKey.fill(0);
+  }
+}
+
+// Password changes rotate only the wrapper and authentication credential.
+// Entry ciphertext remains valid because its random data key is unchanged.
+export async function rewrapVault(password, key) {
+  validateNewPassword(password);
+  const rawDataKey = new Uint8Array(await crypto.subtle.exportKey("raw", key));
+  try {
+    return await wrapRawDataKey(password, rawDataKey);
+  } finally {
+    rawDataKey.fill(0);
+  }
+}
+
+export async function unlockVault(password, header) {
+  validatePassword(password);
+  validateHeader(header);
+  const wrappingKey = await deriveWrappingKey(password, fromBase64(header.kdf.salt), header.kdf.iterations);
+  const raw = new Uint8Array(await crypto.subtle.decrypt({
+    name: "AES-GCM",
+    iv: fromBase64(header.wrap.iv),
+    additionalData: WRAP_AAD,
+  }, wrappingKey, fromBase64(header.wrap.ciphertext)));
+  try {
+    return await importDataKey(raw);
+  } finally {
+    raw.fill(0);
+  }
+}
+
+export async function deriveVaultAccess(password, header) {
+  const [key, credential] = await Promise.all([
+    unlockVault(password, header),
+    deriveServerCredential(password, header),
+  ]);
+  return {key, credential};
+}
+
+// Authentication uses a separately salted derivative. Sending this value to
+// Go proves knowledge of the password without exposing the data-wrapping key.
+export async function deriveServerCredential(password, header) {
+  validatePassword(password);
+  validateHeader(header);
+  return deriveCredential(password, fromBase64(header.auth.salt), header.auth.iterations);
+}
+
+async function deriveCredential(password, salt, iterations) {
+  const material = await crypto.subtle.importKey("raw", utf8(password), "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({name: "PBKDF2", salt, iterations, hash: "SHA-256"}, material, 256);
+  return toBase64(bits).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
+}
+
+async function wrapRawDataKey(password, rawDataKey) {
+  const salt = randomBytes(16);
+  const authSalt = randomBytes(16);
+  const iv = randomBytes(12);
+  const [wrappingKey, credential] = await Promise.all([
+    deriveWrappingKey(password, salt, KDF_ITERATIONS),
+    deriveCredential(password, authSalt, KDF_ITERATIONS),
+  ]);
+  const wrapped = await crypto.subtle.encrypt({name: "AES-GCM", iv, additionalData: WRAP_AAD}, wrappingKey, rawDataKey);
   return {
     header: {
       schemaVersion: 1,
@@ -21,38 +81,8 @@ export async function createVault(password) {
       auth: {name: "PBKDF2", hash: "SHA-256", iterations: KDF_ITERATIONS, salt: toBase64(authSalt)},
       wrap: {name: "AES-GCM", iv: toBase64(iv), ciphertext: toBase64(wrapped)},
     },
-    key,
-    credential: await deriveCredential(password, authSalt, KDF_ITERATIONS),
+    credential,
   };
-}
-
-export async function unlockVault(password, header) {
-  return (await deriveVaultAccess(password, header)).key;
-}
-
-export async function deriveVaultAccess(password, header) {
-  validatePassword(password);
-  validateHeader(header);
-  const [wrappingKey, credential] = await Promise.all([
-    deriveWrappingKey(password, fromBase64(header.kdf.salt), header.kdf.iterations),
-    deriveCredential(password, fromBase64(header.auth.salt), header.auth.iterations),
-  ]);
-  const raw = new Uint8Array(await crypto.subtle.decrypt({
-    name: "AES-GCM",
-    iv: fromBase64(header.wrap.iv),
-    additionalData: WRAP_AAD,
-  }, wrappingKey, fromBase64(header.wrap.ciphertext)));
-  try {
-    return {key: await importDataKey(raw), credential};
-  } finally {
-    raw.fill(0);
-  }
-}
-
-async function deriveCredential(password, salt, iterations) {
-  const material = await crypto.subtle.importKey("raw", utf8(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({name: "PBKDF2", salt, iterations, hash: "SHA-256"}, material, 256);
-  return toBase64(bits).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/, "");
 }
 
 export async function encryptObject(key, metadata, value) {
@@ -94,7 +124,7 @@ async function deriveWrappingKey(password, salt, iterations) {
 
 function importDataKey(raw) {
   if (raw.byteLength !== 32) throw new TypeError("invalid data key length");
-  return crypto.subtle.importKey("raw", raw, {name: "AES-GCM"}, false, ["encrypt", "decrypt"]);
+  return crypto.subtle.importKey("raw", raw, {name: "AES-GCM"}, true, ["encrypt", "decrypt"]);
 }
 
 function metadataAAD(metadata) {
@@ -127,6 +157,10 @@ function validateEnvelope(envelope) {
 
 function validatePassword(password) {
   if (typeof password !== "string" || password.length < 12) throw new TypeError("password must contain at least 12 characters");
+}
+
+function validateNewPassword(password) {
+  if (typeof password !== "string" || password.length < 16) throw new TypeError("password must contain at least 16 characters");
 }
 
 function randomBytes(length) {

@@ -271,6 +271,37 @@ func (s *Store) AuthHash(ctx context.Context) ([]byte, error) {
 	return value, nil
 }
 
+// RotateVault publishes the new password wrapper and authentication hash in
+// one SQLite transaction, so a crash can never leave only one side changed.
+func (s *Store) RotateVault(ctx context.Context, header json.RawMessage, authHash []byte) error {
+	if len(header) == 0 || len(header) > 64<<10 || !json.Valid(header) || len(authHash) != sha256.Size {
+		return fmt.Errorf("invalid vault rotation")
+	}
+	var value map[string]any
+	if err := json.Unmarshal(header, &value); err != nil || value == nil {
+		return fmt.Errorf("vault header must be an object")
+	}
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin vault rotation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	for key, data := range map[string][]byte{"vault_header": header, "auth_hash": authHash} {
+		result, err := tx.ExecContext(ctx, `UPDATE metadata SET value = ? WHERE key = ?`, data, key)
+		if err != nil {
+			return fmt.Errorf("rotate %s: %w", key, err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil || rows != 1 {
+			return ErrNotFound
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("finish vault rotation: %w", err)
+	}
+	return nil
+}
+
 func (s *Store) VaultHeader(ctx context.Context) (json.RawMessage, error) {
 	var raw []byte
 	if err := s.db.QueryRowContext(ctx, `SELECT value FROM metadata WHERE key = 'vault_header'`).Scan(&raw); err != nil {

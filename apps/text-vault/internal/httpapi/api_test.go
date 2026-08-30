@@ -114,3 +114,59 @@ func TestSetupRejectsMalformedDerivedCredential(t *testing.T) {
 		t.Fatalf("malformed credential status = %d body=%s", response.Code, response.Body.String())
 	}
 }
+
+func TestAPIResponsesAreNeverCached(t *testing.T) {
+	h := newTestAPI(t)
+	response := httptest.NewRecorder()
+	h.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/vault", nil))
+	if response.Code != http.StatusNotFound {
+		t.Fatalf("vault status = %d", response.Code)
+	}
+	if got := response.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("Cache-Control = %q", got)
+	}
+
+	health := httptest.NewRecorder()
+	h.ServeHTTP(health, httptest.NewRequest(http.MethodGet, "/api/health", nil))
+	if got := health.Header().Get("Cache-Control"); got != "no-store" {
+		t.Fatalf("health Cache-Control = %q", got)
+	}
+	page := httptest.NewRecorder()
+	h.ServeHTTP(page, httptest.NewRequest(http.MethodGet, "/", nil))
+	if got := page.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("page Cache-Control = %q", got)
+	}
+}
+
+func TestRekeyRotatesServerAuthentication(t *testing.T) {
+	h := newTestAPI(t)
+	oldCredential := strings.Repeat("A", 43)
+	newCredential := strings.Repeat("B", 43)
+	setup := httptest.NewRecorder()
+	setupRequest := httptest.NewRequest(http.MethodPost, "/api/setup", strings.NewReader(`{"header":{"schemaVersion":1,"name":"old"},"credential":"`+oldCredential+`"}`))
+	setupRequest.Header.Set("Content-Type", "application/json")
+	h.ServeHTTP(setup, setupRequest)
+
+	rekey := httptest.NewRecorder()
+	rekeyRequest := httptest.NewRequest(http.MethodPost, "/api/rekey", strings.NewReader(`{"header":{"schemaVersion":1,"name":"new"},"credential":"`+newCredential+`"}`))
+	rekeyRequest.Header.Set("Content-Type", "application/json")
+	rekeyRequest.Header.Set("X-CSRF-Token", setup.Header().Get("X-CSRF-Token"))
+	rekeyRequest.AddCookie(setup.Result().Cookies()[0])
+	h.ServeHTTP(rekey, rekeyRequest)
+	if rekey.Code != http.StatusNoContent {
+		t.Fatalf("rekey = %d %s", rekey.Code, rekey.Body.String())
+	}
+
+	for _, check := range []struct {
+		credential string
+		want       int
+	}{{newCredential, http.StatusOK}, {oldCredential, http.StatusUnauthorized}} {
+		response := httptest.NewRecorder()
+		request := httptest.NewRequest(http.MethodPost, "/api/login", strings.NewReader(`{"credential":"`+check.credential+`"}`))
+		request.Header.Set("Content-Type", "application/json")
+		h.ServeHTTP(response, request)
+		if response.Code != check.want {
+			t.Fatalf("credential %.4q status = %d want %d", check.credential, response.Code, check.want)
+		}
+	}
+}
