@@ -22,9 +22,21 @@ test("first run creates vault and unsaved text is immediately searchable", async
   await expect(page.getByText("已保存", {exact: true})).toBeVisible();
   await page.getByRole("button", {name: "固定当前搜索"}).click();
   await expect(page.getByText("已保存", {exact: true})).toBeVisible();
-  await expect(page.getByRole("button", {name: "取消固定 1.2.3.4"})).toBeVisible();
-  await page.getByRole("button", {name: "取消固定 1.2.3.4"}).click();
-  await expect(page.getByRole("button", {name: "取消固定 1.2.3.4"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "关闭标签 1.2.3.4"})).toBeVisible();
+  await page.getByRole("button", {name: "关闭标签 1.2.3.4"}).click();
+  await expect(page.getByRole("button", {name: "关闭标签 1.2.3.4"})).toHaveCount(0);
+  await expect(page.getByRole("button", {name: "关闭标签 全部条目"})).toHaveCount(0);
+
+  await page.getByRole("option", {name: /客户B/}).click();
+  await page.getByRole("textbox", {name: "条目内容"}).evaluate(editor => {
+    editor.focus();
+    editor.setSelectionRange(3, 11);
+    editor.dispatchEvent(new Event("select", {bubbles: true}));
+  });
+  await expect(page.getByRole("button", {name: /在新标签搜索/})).toBeVisible();
+  await page.getByRole("button", {name: /在新标签搜索/}).click();
+  await expect(page.getByRole("searchbox", {name: "搜索条目"})).toHaveValue("1.2.3.4");
+  await expect(page.getByRole("button", {name: "关闭标签 1.2.3.4"})).toBeVisible();
   await expect(page.getByText("已保存", {exact: true})).toBeVisible();
   await page.screenshot({path: "/tmp/text-vault-desktop.png", fullPage: true});
   expect(runtimeErrors).toEqual([]);
@@ -39,7 +51,11 @@ test("saved text survives a reload and mobile navigation stays usable", async ({
 
   await expect(page.getByRole("textbox", {name: "条目内容"})).toHaveValue("客户B 1.2.3.4 宝塔");
   await expect(page.getByRole("button", {name: "返回结果"})).toBeVisible();
+  const searchLeftBeforeBack = (await page.getByRole("searchbox", {name: "搜索条目"}).boundingBox()).x;
   await page.getByRole("button", {name: "返回结果"}).click();
+  await expect(page.getByRole("button", {name: "返回结果"})).toBeHidden();
+  const searchLeftAfterBack = (await page.getByRole("searchbox", {name: "搜索条目"}).boundingBox()).x;
+  expect(searchLeftAfterBack).toBe(searchLeftBeforeBack);
   await page.getByRole("searchbox", {name: "搜索条目"}).fill("1.2.3.4");
   await page.getByRole("option", {name: /客户B/}).click();
   await expect(page.getByRole("textbox", {name: "条目内容"})).toHaveValue("客户B 1.2.3.4 宝塔");

@@ -91,10 +91,16 @@ function renderApplication({repository, workspace, saver, workspaceID, key}) {
   const workspaceState = van.state(workspace.state());
   const saveState = van.state(saver.status());
   const message = van.state("");
+  const selectedText = van.state("");
+  const updateSelectedText = event => {
+    const editor = event.currentTarget;
+    selectedText.val = editor.value.slice(editor.selectionStart, editor.selectionEnd).trim();
+  };
   const content = textarea({class: "editor", "aria-label": "条目内容", spellcheck: false, oninput: event => {
     const id = workspace.state().selectedEntryId;
     if (id) repository.updateEntryText(id, event.target.value);
-  }});
+    updateSelectedText(event);
+  }, onselect: updateSelectedText, onkeyup: updateSelectedText, onpointerup: updateSelectedText});
   const newPassword = input({type: "password", autocomplete: "new-password", minlength: 16, required: true});
   const repeatedPassword = input({type: "password", autocomplete: "new-password", minlength: 16, required: true});
   const passwordError = van.state("");
@@ -124,7 +130,10 @@ function renderApplication({repository, workspace, saver, workspaceID, key}) {
     const object = selected ? repository.get(selected) : null;
     content.disabled = !object;
     content.placeholder = object ? "直接输入内容" : "从左侧选择条目，或新建一条";
-    if (content.dataset.objectId !== (selected ?? "")) content.value = object?.text ?? "";
+    if (content.dataset.objectId !== (selected ?? "")) {
+      content.value = object?.text ?? "";
+      selectedText.val = "";
+    }
     content.dataset.objectId = selected ?? "";
   };
 
@@ -151,7 +160,14 @@ function renderApplication({repository, workspace, saver, workspaceID, key}) {
   };
   const tabs = () => {
     const state = workspaceState.val;
-    return div({class: "tabs-track"}, state.tabs.map(tab => div({class: `tab${tab.id === state.activeTabId ? " active" : ""}`}, button({type: "button", class: "tab-select", onclick: () => workspace.selectTab(tab.id), title: tab.query || "全部条目"}, tab.query || "全部条目"), tab.pinned ? button({type: "button", class: "tab-close", "aria-label": `取消固定 ${tab.query || "全部条目"}`, title: "取消固定", onclick: event => { event.stopPropagation(); workspace.closeTab(tab.id); }}, "×") : null)));
+    return div({class: "tabs-track"}, state.tabs.map(tab => div({class: `tab${tab.id === state.activeTabId ? " active" : ""}`}, button({type: "button", class: "tab-select", onclick: () => workspace.selectTab(tab.id), title: tab.query || "全部条目"}, tab.query || "全部条目"), state.tabs.length > 1 ? button({type: "button", class: "tab-close", "aria-label": `关闭标签 ${tab.query || "全部条目"}`, title: "关闭标签", onclick: event => { event.stopPropagation(); workspace.closeTab(tab.id); }}, "×") : null)));
+  };
+  const searchSelection = () => {
+    const query = selectedText.val;
+    if (!query) return;
+    workspace.openSearchTab(query);
+    selectedText.val = "";
+    queueMicrotask(() => searchBox.focus());
   };
   const doSave = async () => {
     message.val = "";
@@ -186,7 +202,7 @@ function renderApplication({repository, workspace, saver, workspaceID, key}) {
           workspace.setSplitRatio(workspace.state().splitRatio + (event.key === "ArrowLeft" ? -0.02 : 0.02));
         }
       }}),
-      section({class: () => `content-pane ${workspaceState.val.mobilePane === "content" ? "mobile-active" : ""}`}, div({class: "editor-meta"}, span(() => workspaceState.val.selectedEntryId ? "纯文本条目" : "未选择条目"), span({class: "global-message", role: "status"}, message)), content)),
+      section({class: () => `content-pane ${workspaceState.val.mobilePane === "content" ? "mobile-active" : ""}`}, div({class: "editor-meta"}, span(() => workspaceState.val.selectedEntryId ? "纯文本条目" : "未选择条目"), span({class: "global-message", role: "status"}, message)), content, button({type: "button", class: "selection-search", hidden: () => !selectedText.val, "aria-label": () => `在新标签搜索 ${selectedText.val}`, title: "在新标签搜索", onpointerdown: event => event.preventDefault(), onclick: searchSelection}, () => `搜索“${selectionLabel(selectedText.val)}”`))),
     section({class: "tabbar", "aria-label": "查询标签"}, van.derive(tabs), button({type: "button", class: "pin-button", "aria-label": "固定当前搜索", onclick: () => workspace.pinCurrent(), title: "固定当前搜索"}, pinIcon())), passwordDialog));
   syncEditor();
   searchBox.focus();
@@ -198,6 +214,7 @@ function authShell(title, subtitle, body) {
 function activeTab(state) { return state.tabs.find(tab => tab.id === state.activeTabId) ?? state.tabs[0]; }
 function statusLabel(status) { return ({clean: "已保存", dirty: "未保存", saving: "保存中…", failed: "保存失败", conflict: "版本冲突"})[status] ?? "未保存"; }
 function shortDate(value) { const date = new Date(value); return Number.isNaN(date.valueOf()) ? "" : new Intl.DateTimeFormat("zh-CN", {month: "2-digit", day: "2-digit"}).format(date); }
+function selectionLabel(value) { return value.length > 18 ? `${value.slice(0, 18)}…` : value; }
 function pinIcon() {
   const namespace = "http://www.w3.org/2000/svg";
   const svg = document.createElementNS(namespace, "svg");

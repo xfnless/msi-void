@@ -41,6 +41,18 @@ export function createWorkspace(initial, {idFactory = () => newID("tab")} = {}) 
     return scratch.id;
   }
 
+  // Searches opened from selected text use the same durable tab model as all
+  // other work, so save, restore and close behavior stay unsurprising.
+  function openSearchTab(query) {
+    const normalizedQuery = String(query).trim();
+    if (!normalizedQuery) return null;
+    const tab = {id: idFactory(), query: normalizedQuery, selectedEntryId: null, listScrollTop: 0, pinned: false};
+    durableState = {...durableState, activeTabId: tab.id, tabs: [...durableState.tabs, tab]};
+    mobilePane = "list";
+    notify();
+    return tab.id;
+  }
+
   function selectTab(id) {
     if (!durableState.tabs.some(tab => tab.id === id)) return false;
     durableState = {...durableState, activeTabId: id};
@@ -93,7 +105,7 @@ export function createWorkspace(initial, {idFactory = () => newID("tab")} = {}) 
     for (const subscriber of subscribers) subscriber(state());
   }
 
-  return {state, durable, setQuery, selectEntry, pinCurrent, selectTab, closeTab, showList, setSplitRatio, setListScroll, subscribe};
+  return {state, durable, setQuery, selectEntry, pinCurrent, openSearchTab, selectTab, closeTab, showList, setSplitRatio, setListScroll, subscribe};
 }
 
 function normalize(value) {
