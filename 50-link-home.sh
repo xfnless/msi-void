@@ -12,5 +12,6 @@ ln -sfn /usr/share/examples/pipewire/20-pipewire-pulse.conf \
 ln -sfn "$h/.bash_profile" "$HOME/.bash_profile"
 ln -sfn "$h/.bashrc" "$HOME/.bashrc"
 ln -sfn "$h/.inputrc" "$HOME/.inputrc"
+ln -sfn "$h/.xinitrc" "$HOME/.xinitrc"
 ln -sfnT "$h/.config/river" "$HOME/.config/river"
 ln -sfn "$h/.config/fcitx5/profile" "$HOME/.config/fcitx5/profile"

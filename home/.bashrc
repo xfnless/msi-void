@@ -63,6 +63,26 @@ rv() {
 	dbus-run-session river -c "$HOME/.local/bin/tri-session"
 }
 
+# Start an unconfigured labwc session from a TTY.
+lab() {
+	if [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]]; then
+		printf 'Graphical session already running.\n' >&2
+		return 1
+	fi
+	export XDG_RUNTIME_DIR="/tmp/xdg-runtime-$UID"
+	install -d -m 700 "$XDG_RUNTIME_DIR" || return
+	dbus-run-session labwc
+}
+
+# Start the default cwm session through Xorg.
+xc() {
+	if [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]]; then
+		printf 'Graphical session already running.\n' >&2
+		return 1
+	fi
+	startx
+}
+
 
 # 历史记录
 HISTSIZE=100000
