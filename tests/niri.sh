@@ -10,6 +10,11 @@ grep -q '^ni() {' "$root/home/.bashrc" || fail 'ni starts Niri from a TTY'
 grep -Fq 'dbus-run-session niri --session' "$root/home/.bashrc" || fail 'Niri runs in a D-Bus session'
 grep -Fq 'ln -sfnT "$h/.config/niri" "$HOME/.config/niri"' "$root/50-link-home.sh" || fail 'Niri config is linked'
 grep -Eq '(^|[[:space:]])niri([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'Niri is installed'
+grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
+grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
+if grep -Riq 'satty' "$root/20-pkg-base.sh" "$root/60-pkg-apps.sh" "$root/home/.config/niri"; then
+	fail 'Satty remains in the active setup'
+fi
 
 for path in \
 	"$root/home/.config/labwc" "$root/home/.config/river" "$root/home/.config/tri" \

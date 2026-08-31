@@ -53,16 +53,6 @@ window-rule {
     default-window-height { proportion 0.8; }
 }
 
-// 便签：浮动小窗；跨工作区由 niri-float-sticky 按 title 钉住
-window-rule {
-    match app-id="^Alacritty$" title="^sticky-note$"
-    open-floating true
-    open-focused true
-    default-column-width { proportion 0.32; }
-    default-window-height { proportion 0.4; }
-    default-floating-position x=24 y=24 relative-to="top-right"
-}
-
 output "eDP-1" {
        scale 1.5
        mode "2560x1600@60.003"
@@ -71,7 +61,6 @@ output "eDP-1" {
 // Put swaybg inside the overview backdrop.
 layer-rule {
     match namespace="^wallpaper$"
-
     place-within-backdrop true
 }
 
@@ -84,28 +73,23 @@ animations { off ;}
 // 用 spawn-at-startup 直接传参，避免 spawn-sh 留下常驻 sh -c。
 // 壁纸/锁屏路径按本机用户写死（本仓库就是 msi-void 个人配置）。
 spawn-at-startup "swaybg" "-i" "/home/xfn/.config/niri/bg4.jpg"
-spawn-at-startup "brightnessctl" "set" "50%"
-spawn-at-startup "amixer" "set" "Master" "30%" "unmute"
 spawn-at-startup "swayidle" "-w" \
     "timeout" "180" "swaylock -f -i /home/xfn/.config/niri/bg3.jpg" \
     "timeout" "240" "niri msg action power-off-monitors"
 spawn-at-startup "fcitx5"
 spawn-at-startup "alacritty"
 spawn-at-startup "wlsunset" "-l" "20" "-L" "100"
-spawn-at-startup "niri-float-sticky" "-title" "^sticky-note$"
 
 binds {
 Mod+w repeat=false { spawn "wl-kbptr" "-o" "modes=floating,click" "-o" "mode_floating.source=detect"; }
 Mod+escape repeat=false { power-off-monitors; }
 Mod+a repeat=false { spawn "alacritty"; }
-Mod+x repeat=false { spawn "alacritty" "-e" "vis" "+new-entry"; }
-Mod+n repeat=false { spawn "/home/xfn/.local/bin/xnote"; }
 Mod+c repeat=false { spawn "firefox" "--new-window"; }
 Mod+g repeat=false { spawn "google-chrome-stable"; }
 Mod+z repeat=false { spawn "Telegram"; }
 Mod+v repeat=false { toggle-overview; }
-Mod+p repeat=false { spawn-sh "grim - | satty -f - --copy-command wl-copy --early-exit"; }
-Mod+ctrl+p repeat=false { spawn-sh "grim -g \"$(slurp)\" - | satty -f - --copy-command wl-copy --early-exit"; }
+Mod+p repeat=false { spawn-sh "grim - | swappy -f -"; }
+Mod+ctrl+p repeat=false { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
 Mod+r repeat=false { switch-preset-column-width; }
 
 Mod+s  cooldown-ms=70   { focus-column-left; }
@@ -123,8 +107,8 @@ Mod+alt+d cooldown-ms=70 { move-column-to-workspace-down; }
 Mod+alt+s cooldown-ms=70 { consume-or-expel-window-left; }
 Mod+alt+f cooldown-ms=70 { consume-or-expel-window-right; }
 
-XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "5%-"; }
-XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "set" "5%+"; }
+XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "2%-"; }
+XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "set" "2%+"; }
 XF86AudioLowerVolume allow-when-locked=true { spawn "amixer" "set" "Master" "2%-"; }
 XF86AudioRaiseVolume allow-when-locked=true { spawn "amixer" "set" "Master" "2%+"; }
 XF86AudioMute allow-when-locked=true { spawn "amixer" "set" "Master" "toggle"; }

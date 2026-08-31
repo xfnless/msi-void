@@ -4,7 +4,7 @@ set -eu
 
 sudo xbps-install -S \
 	firefox \
-	grim slurp satty \
+	grim slurp swappy \
 	imv mpv zathura zathura-pdf-poppler \
 	xdg-desktop-portal-termfilechooser xdg-utils \
 	lf curl fd fzf ripgrep bat chafa htop xz \
