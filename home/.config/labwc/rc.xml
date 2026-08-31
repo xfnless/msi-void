@@ -1,0 +1,20 @@
+<labwc_config>
+  <theme>
+    <font name="WenQuanYi Micro Hei" size="10" />
+  </theme>
+
+  <keyboard>
+    <default />
+    <repeatRate>40</repeatRate>
+    <repeatDelay>250</repeatDelay>
+    <keybind key="W-Return">
+      <action name="Execute" command="alacritty" />
+    </keybind>
+  </keyboard>
+
+  <libinput>
+    <device category="touchpad">
+      <tap>yes</tap>
+    </device>
+  </libinput>
+</labwc_config>
