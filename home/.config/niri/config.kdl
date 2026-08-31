@@ -92,7 +92,6 @@ Mod+w repeat=false { spawn "wl-kbptr" "-o" "modes=floating,click" "-o" "mode_flo
 Mod+escape repeat=false { power-off-monitors; }
 Mod+a repeat=false { spawn "alacritty"; }
 Mod+c repeat=false { spawn "firefox" "--new-window"; }
-Mod+g repeat=false { spawn "google-chrome-stable"; }
 Mod+z repeat=false { spawn "Telegram"; }
 Mod+v repeat=false { toggle-overview; }
 Mod+p repeat=false { spawn-sh "grim - | swappy -f -"; }

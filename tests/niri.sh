@@ -11,7 +11,6 @@ grep -Fq 'dbus-run-session niri --session' "$root/home/.bashrc" || fail 'Niri ru
 grep -Fq 'ln -sfnT "$h/.config/niri" "$HOME/.config/niri"' "$root/50-link-home.sh" || fail 'Niri config is linked'
 grep -Eq '(^|[[:space:]])niri([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'Niri is installed'
 grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'amixer is installed'
-grep -Eq '(^|[[:space:]])google-chrome([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Google Chrome binding is installable on both hosts'
 grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
 grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
 if grep -Eq '/home/' "$root/home/.config/niri/config.kdl"; then
