@@ -15,6 +15,9 @@ grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screensho
 if grep -Riq 'satty' "$root/20-pkg-base.sh" "$root/60-pkg-apps.sh" "$root/home/.config/niri"; then
 	fail 'Satty remains in the active setup'
 fi
+if grep -Eiq 'niri-float-sticky|bemenu|wlopm' "$root/20-pkg-base.sh"; then
+	fail 'unused Niri helpers remain in the base package list'
+fi
 
 for path in \
 	"$root/home/.config/labwc" "$root/home/.config/river" "$root/home/.config/tri" \
