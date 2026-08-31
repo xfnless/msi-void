@@ -6,6 +6,7 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 grep -Fx 'Xft.dpi: 144' "$root/home/.Xresources" >/dev/null
 grep -Fx 'fontname "WenQuanYi Micro Hei:pixelsize=21"' "$root/home/.cwmrc" >/dev/null
 grep -Fx 'command term alacritty' "$root/home/.cwmrc" >/dev/null
+grep -Fx 'bind-key 4-d "bemenu-run -i --fn '\''WenQuanYi Micro Hei 14'\''"' "$root/home/.cwmrc" >/dev/null
 grep -Fx 'export GTK_IM_MODULE=fcitx' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'export QT_IM_MODULE=fcitx' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'export XMODIFIERS=@im=fcitx' "$root/home/.xinitrc" >/dev/null

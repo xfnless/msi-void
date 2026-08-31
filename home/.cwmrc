@@ -1,2 +1,3 @@
 fontname "WenQuanYi Micro Hei:pixelsize=21"
 command term alacritty
+bind-key 4-d "bemenu-run -i --fn 'WenQuanYi Micro Hei 14'"
