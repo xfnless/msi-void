@@ -53,8 +53,15 @@ window-rule {
     default-window-height { proportion 0.8; }
 }
 
-output "eDP-1" {
+// 两台内屏各用型号规则；ASUS 查到精确值后启用占位段。
+output "AU Optronics 0x0FA7 Unknown" {
        scale 1.5
+       mode "2560x1600@60.003"
+}
+
+/-output "ASUS_PANEL_MODEL" {
+       scale 1.5
+       mode "2560x1600@ASUS_60_HZ"
 }
 
 // Put swaybg inside the overview backdrop.

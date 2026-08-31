@@ -14,9 +14,12 @@ grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh" || 
 grep -Eq '(^|[[:space:]])google-chrome([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Google Chrome binding is installable on both hosts'
 grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
 grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
-if grep -Eq '/home/|2560x1600|@60\.003' "$root/home/.config/niri/config.kdl"; then
-	fail 'Niri config contains a user or host-specific path or mode'
+if grep -Eq '/home/' "$root/home/.config/niri/config.kdl"; then
+	fail 'Niri config contains a user-specific path'
 fi
+grep -Fq 'output "AU Optronics 0x0FA7 Unknown"' "$root/home/.config/niri/config.kdl" || fail 'MSI panel has an exact output rule'
+grep -Fq 'mode "2560x1600@60.003"' "$root/home/.config/niri/config.kdl" || fail 'MSI panel is fixed to 60 Hz'
+grep -Fq '/-output "ASUS_PANEL_MODEL"' "$root/home/.config/niri/config.kdl" || fail 'ASUS panel rule has a disabled placeholder'
 grep -Fq 'spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""' \
 	"$root/home/.config/niri/config.kdl" || fail 'wallpaper path follows HOME'
 grep -Fq 'swaylock -f -i $HOME/.config/niri/bg3.jpg' \
