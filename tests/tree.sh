@@ -10,7 +10,8 @@ for path in archive/home/.emacs.d archive/home/.config/nvim \
 done
 
 for path in Documents home/.emacs.d home/.config/nvim \
-	home/.config/foot home/.config/mouseless home/.asoundrc \
+	home/.config/foot home/.config/mouseless home/.config/lf \
+	home/.config/xdg-desktop-portal-termfilechooser home/.asoundrc \
 	keyd grub msi/grub asus/grub 86-dns.sh etc/resolv.conf.head; do
 	[ ! -e "$repo/$path" ] || fail "inactive or private path is active: $path"
 done
@@ -21,6 +22,9 @@ if grep -Eiq 'intel|amd|sof|tlp|iwlwifi|efibootmgr|nameserver|bluetooth|bluez|mo
 fi
 grep -q 'pipewire' "$repo/20-pkg-base.sh" || fail 'PipeWire is common'
 grep -q 'wireplumber' "$repo/20-pkg-base.sh" || fail 'WirePlumber is common'
+if grep -Eq '(^|[[:space:]])lf([[:space:]\\]|$)|termfilechooser' "$repo/60-pkg-apps.sh" "$repo/70-link-apps.sh" "$repo/home/.bashrc"; then
+	fail 'unused LF file chooser remains active'
+fi
 grep -q 'firefox' "$repo/60-pkg-apps.sh" || fail 'Firefox is installed on both hosts'
 [ -x "$repo/90-helium.sh" ] || fail 'Helium is installed on both hosts'
 grep -q 'firefox.desktop' "$repo/msi/home/.config/mimeapps.list" || fail 'MSI defaults to Firefox'

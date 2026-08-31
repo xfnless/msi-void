@@ -32,12 +32,6 @@ shopt -s checkwinsize
 export EDITOR=vis
 export VISUAL=vis
 
-# Keep the shell in the directory last visited by lf.
-lfcd() {
-	cd "$(command lf -print-last-dir "$@")" || return
-}
-alias lf=lfcd
-
 alias ld='ls -Alh --color=auto'
 alias cx='chmod +x'
 alias gl='git clone --depth=1'

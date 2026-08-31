@@ -77,6 +77,7 @@ spawn-at-startup "swayidle" "-w" \
     "timeout" "180" "swaylock -f -i /home/xfn/.config/niri/bg3.jpg" \
     "timeout" "240" "niri msg action power-off-monitors"
 spawn-at-startup "fcitx5"
+spawn-at-startup "pipewire"
 spawn-at-startup "alacritty"
 spawn-at-startup "wlsunset" "-l" "20" "-L" "100"
 
