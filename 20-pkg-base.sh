@@ -1,11 +1,11 @@
 #!/bin/sh
-# Packages shared by both River laptops.
+# Packages shared by both Niri laptops.
 set -eu
 
 sudo xbps-install -Syu
 sudo xbps-install -S \
-	alacritty dbus seatd wlroots0.20 fcft libutf8proc \
-	labwc cwm bemenu yambar tint2 xorg-minimal xterm xrdb \
+	alacritty dbus seatd niri niri-float-sticky xwayland-satellite \
+	bemenu swaybg wl-kbptr \
 	swayidle swaylock wlsunset wlopm wl-clipboard brightnessctl \
 	pipewire wireplumber alsa-pipewire \
 	fcitx5 fcitx5-rime keyd \

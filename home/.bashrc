@@ -42,45 +42,15 @@ alias ld='ls -Alh --color=auto'
 alias cx='chmod +x'
 alias gl='git clone --depth=1'
 
-# Start River + tri from a TTY.
-rv() {
-	if [[ -n ${WAYLAND_DISPLAY:-} ]]; then
-		printf 'Wayland session already running.\n' >&2
-		return 1
-	fi
-	export XDG_RUNTIME_DIR="/tmp/xdg-runtime-$UID"
-	export XDG_CURRENT_DESKTOP=river
-	export XDG_SESSION_DESKTOP=river
-	export XDG_SESSION_TYPE=wayland
-	export XCURSOR_THEME=Adwaita
-	export XCURSOR_SIZE=24
-	unset GTK_IM_MODULE
-	export QT_IM_MODULE=fcitx
-	export QT_IM_MODULES="wayland;fcitx"
-	export XMODIFIERS=@im=fcitx
-	export PATH="$HOME/.local/bin:$PATH"
-	install -d -m 700 "$XDG_RUNTIME_DIR" || return
-	dbus-run-session river -c "$HOME/.local/bin/tri-session"
-}
-
-# Start an unconfigured labwc session from a TTY.
-lab() {
+# Start Niri from a TTY.
+ni() {
 	if [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]]; then
 		printf 'Graphical session already running.\n' >&2
 		return 1
 	fi
 	export XDG_RUNTIME_DIR="/tmp/xdg-runtime-$UID"
 	install -d -m 700 "$XDG_RUNTIME_DIR" || return
-	dbus-run-session labwc
-}
-
-# Start the default cwm session through Xorg.
-xc() {
-	if [[ -n ${WAYLAND_DISPLAY:-} || -n ${DISPLAY:-} ]]; then
-		printf 'Graphical session already running.\n' >&2
-		return 1
-	fi
-	startx
+	dbus-run-session niri --session
 }
 
 
@@ -90,9 +60,9 @@ HISTFILESIZE=200000
 HISTCONTROL=ignoreboth:erasedups
 # 多行命令按一条记录保存；追加历史，不覆盖；保留换行。
 shopt -s cmdhist histappend lithist
-# Update tri's titlebar and append new history at every prompt.
-_tri_set_title() {
+# Update the terminal title and append new history at every prompt.
+_set_title() {
 	printf '\033]0;%s@%s:%s\033\\' "$USER" "${HOSTNAME%%.*}" "${PWD/#$HOME/~}"
 }
 
-PROMPT_COMMAND='_tri_set_title; history -a'
+PROMPT_COMMAND='_set_title; history -a'

@@ -1,7 +1,0 @@
-.zig-cache/
-zig-out/*
-!zig-out/bin/
-zig-out/bin/*
-!zig-out/bin/tri
-zig-pkg/
-.tri-build.*

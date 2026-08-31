@@ -5,7 +5,6 @@ sudo sh 10-set-hosts.sh
 sh 15-xbps-repos.sh
 sh 20-pkg-base.sh
 sh 30-keyd.sh
-sh 35-xorg.sh
 sh 40-sv-base.sh
 sh 50-link-home.sh
 sh 60-pkg-apps.sh
