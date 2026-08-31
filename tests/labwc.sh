@@ -15,5 +15,10 @@ grep -F '<repeatDelay>250</repeatDelay>' "$config/rc.xml" >/dev/null
 grep -F '<device category="touchpad">' "$config/rc.xml" >/dev/null
 grep -F '<tap>yes</tap>' "$config/rc.xml" >/dev/null
 grep -F '<action name="Execute" command="alacritty" />' "$config/rc.xml" >/dev/null
+grep -F '<keybind key="W-p">' "$config/rc.xml" >/dev/null
 grep -F '<action name="Execute" command="bemenu-run -i --fn &apos;WenQuanYi Micro Hei 14&apos;" />' "$config/rc.xml" >/dev/null
+grep -Fx 'yambar &' "$config/autostart" >/dev/null
+grep -F 'foreign-toplevel:' "$root/home/.config/yambar/config.yml" >/dev/null
+grep -F 'name: BAT1' "$root/home/.config/yambar/config.yml" >/dev/null
+grep -F 'text: "{time}"' "$root/home/.config/yambar/config.yml" >/dev/null
 grep -F 'ln -sfnT "$h/.config/labwc" "$HOME/.config/labwc"' "$root/50-link-home.sh" >/dev/null

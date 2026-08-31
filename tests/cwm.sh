@@ -6,13 +6,17 @@ root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 grep -Fx 'Xft.dpi: 144' "$root/home/.Xresources" >/dev/null
 grep -Fx 'fontname "WenQuanYi Micro Hei:pixelsize=21"' "$root/home/.cwmrc" >/dev/null
 grep -Fx 'command term alacritty' "$root/home/.cwmrc" >/dev/null
-grep -Fx 'bind-key 4-d "bemenu-run -i --fn '\''WenQuanYi Micro Hei 14'\''"' "$root/home/.cwmrc" >/dev/null
+grep -Fx 'bind-key 4-p "bemenu-run -i --fn '\''WenQuanYi Micro Hei 14'\''"' "$root/home/.cwmrc" >/dev/null
 grep -Fx 'export GTK_IM_MODULE=fcitx' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'export QT_IM_MODULE=fcitx' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'export XMODIFIERS=@im=fcitx' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'xrdb -merge "$HOME/.Xresources"' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'xset r rate 250 40' "$root/home/.xinitrc" >/dev/null
 grep -Fx 'fcitx5 &' "$root/home/.xinitrc" >/dev/null
+grep -Fx 'tint2 &' "$root/home/.xinitrc" >/dev/null
+grep -Fx 'panel_items = TBC' "$root/home/.config/tint2/tint2rc" >/dev/null
+grep -Fx 'task_icon = 0' "$root/home/.config/tint2/tint2rc" >/dev/null
+grep -Fx 'time1_format = %H:%M' "$root/home/.config/tint2/tint2rc" >/dev/null
 grep -F 'MatchIsTouchpad "on"' "$root/etc/X11/xorg.conf.d/30-touchpad.conf" >/dev/null
 grep -F 'Option "Tapping" "on"' "$root/etc/X11/xorg.conf.d/30-touchpad.conf" >/dev/null
 grep -F 'sh 35-xorg.sh' "$root/flow.txt" >/dev/null

@@ -8,7 +8,7 @@ mkdir -p "$HOME/.config" "$HOME/.local/bin" \
 	"$HOME/.local/share/applications" "$HOME/.local/share/fcitx5/rime"
 
 ln -sfn "$h/.npmrc" "$HOME/.npmrc"
-for name in alacritty fd fontconfig htop lf mpv vis \
+for name in alacritty fd fontconfig htop lf mpv tint2 vis yambar \
 	xdg-desktop-portal xdg-desktop-portal-termfilechooser; do
 	ln -sfnT "$h/.config/$name" "$HOME/.config/$name"
 done

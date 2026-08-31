@@ -5,7 +5,7 @@ set -eu
 sudo xbps-install -Syu
 sudo xbps-install -S \
 	alacritty dbus seatd wlroots0.20 fcft libutf8proc \
-	labwc cwm bemenu xorg-minimal xterm xrdb \
+	labwc cwm bemenu yambar tint2 xorg-minimal xterm xrdb \
 	swayidle swaylock wlsunset wlopm wl-clipboard brightnessctl \
 	pipewire wireplumber alsa-pipewire \
 	fcitx5 fcitx5-rime keyd \
