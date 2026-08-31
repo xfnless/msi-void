@@ -17,6 +17,9 @@ fail() {
 [ -x "$archive" ] || fail 'safe LF archive helper exists'
 grep -Fx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$portal" >/dev/null || \
 	fail 'Niri selects the terminal file chooser portal'
+if grep -Eiq 'river|wlr' "$portal"; then
+	fail 'Niri portal config contains stale River or wlroots backends'
+fi
 [ ! -e "$repo/home/.config/xdg-desktop-portal/river-portals.conf" ] || \
 	fail 'stale River portal selector remains'
 sh -n "$preview"

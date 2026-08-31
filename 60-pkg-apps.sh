@@ -3,7 +3,7 @@
 set -eu
 
 sudo xbps-install -S \
-	firefox \
+	firefox google-chrome \
 	grim slurp swappy \
 	imv mpv zathura zathura-pdf-poppler \
 	xdg-desktop-portal-termfilechooser xdg-utils \

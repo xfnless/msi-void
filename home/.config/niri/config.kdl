@@ -55,7 +55,6 @@ window-rule {
 
 output "eDP-1" {
        scale 1.5
-       mode "2560x1600@60.003"
 }
 
 // Put swaybg inside the overview backdrop.
@@ -70,11 +69,11 @@ animations { off ;}
 // Niri 由 `dbus-run-session niri --session` 启动。
 // --session 会自行把 WAYLAND_DISPLAY 导入会话 D-Bus，这里不再重复调用
 // dbus-update-activation-environment。
-// 用 spawn-at-startup 直接传参，避免 spawn-sh 留下常驻 sh -c。
-// 壁纸/锁屏路径按本机用户写死（本仓库就是 msi-void 个人配置）。
-spawn-at-startup "swaybg" "-i" "/home/xfn/.config/niri/bg4.jpg"
+// swaybg 用 exec 替换临时 shell，使 $HOME 能展开且不留下常驻 sh。
+// swayidle 会用 shell 执行 timeout 命令，因此其中的 $HOME 会在锁屏时展开。
+spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""
 spawn-at-startup "swayidle" "-w" \
-    "timeout" "180" "swaylock -f -i /home/xfn/.config/niri/bg3.jpg" \
+    "timeout" "180" "swaylock -f -i $HOME/.config/niri/bg3.jpg" \
     "timeout" "240" "niri msg action power-off-monitors"
 spawn-at-startup "fcitx5"
 spawn-at-startup "pipewire"

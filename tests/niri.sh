@@ -10,8 +10,17 @@ grep -q '^ni() {' "$root/home/.bashrc" || fail 'ni starts Niri from a TTY'
 grep -Fq 'dbus-run-session niri --session' "$root/home/.bashrc" || fail 'Niri runs in a D-Bus session'
 grep -Fq 'ln -sfnT "$h/.config/niri" "$HOME/.config/niri"' "$root/50-link-home.sh" || fail 'Niri config is linked'
 grep -Eq '(^|[[:space:]])niri([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'Niri is installed'
+grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'amixer is installed'
+grep -Eq '(^|[[:space:]])google-chrome([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Google Chrome binding is installable on both hosts'
 grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
 grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
+if grep -Eq '/home/|2560x1600|@60\.003' "$root/home/.config/niri/config.kdl"; then
+	fail 'Niri config contains a user or host-specific path or mode'
+fi
+grep -Fq 'spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""' \
+	"$root/home/.config/niri/config.kdl" || fail 'wallpaper path follows HOME'
+grep -Fq 'swaylock -f -i $HOME/.config/niri/bg3.jpg' \
+	"$root/home/.config/niri/config.kdl" || fail 'lock image path follows HOME'
 if grep -Riq 'satty' "$root/20-pkg-base.sh" "$root/60-pkg-apps.sh" "$root/home/.config/niri"; then
 	fail 'Satty remains in the active setup'
 fi
