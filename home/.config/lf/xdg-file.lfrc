@@ -1,0 +1,4 @@
+# XDG file chooser: Enter confirms a file and enters a directory.
+map <enter> open
+map l open
+map <right> open
