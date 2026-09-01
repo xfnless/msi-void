@@ -2,7 +2,10 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
+fail() {
+	printf 'not ok - %s\n' "$1" >&2
+	exit 1
+}
 
 [ -f "$root/home/.config/niri/config.kdl" ] || fail 'Niri configuration is active'
 [ ! -e "$root/archive/home/.config/niri" ] || fail 'Niri is no longer archived'
@@ -13,6 +16,8 @@ grep -Eq '(^|[[:space:]])niri([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail '
 grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'amixer is installed'
 grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
 grep -Fq '| swappy -f -' "$root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
+grep -Fq 'xcursor-theme "Adwaita"' "$root/home/.config/niri/config.kdl" || fail 'Niri uses the installed cursor theme'
+grep -Fq 'xcursor-size 24' "$root/home/.config/niri/config.kdl" || fail 'Niri cursor size matches GTK'
 if grep -Eq '/home/' "$root/home/.config/niri/config.kdl"; then
 	fail 'Niri config contains a user-specific path'
 fi

@@ -13,6 +13,12 @@ set scrolloff 3
 set mouse
 set period 1
 
+# Keep download folders ordered with the newest files first.
+setlocal /home/xfn/Downloads sortby time
+setlocal /home/xfn/Downloads reverse
+setlocal "/home/xfn/Downloads/Telegram Desktop" sortby time
+setlocal "/home/xfn/Downloads/Telegram Desktop" reverse
+
 cmd open ${{
 	set -f
 	case $(file --mime-type -Lb -- "$f") in
@@ -21,17 +27,17 @@ cmd open ${{
 		vis -- $fx
 		;;
 	image/*)
-		imv -- $fx >/dev/null 2>&1 &
+		lf-detach imv -- $fx
 		;;
 	video/*|audio/*)
-		mpv -- $fx >/dev/null 2>&1 &
+		lf-detach mpv -- $fx
 		;;
 	application/pdf)
-		zathura -- $fx >/dev/null 2>&1 &
+		lf-detach zathura -- $fx
 		;;
 	*)
 		for path in $fx; do
-			xdg-open "$path" >/dev/null 2>&1 &
+			lf-detach xdg-open "$path"
 		done
 		;;
 	esac

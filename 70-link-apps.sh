@@ -5,7 +5,8 @@ dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 h=$dir/home
 
 mkdir -p "$HOME/.config" "$HOME/.local/bin" \
-	"$HOME/.local/share/applications" "$HOME/.local/share/fcitx5/rime"
+	"$HOME/.local/share/applications" "$HOME/.local/share/dbus-1/services" \
+	"$HOME/.local/share/fcitx5/rime"
 
 ln -sfn "$h/.npmrc" "$HOME/.npmrc"
 for name in alacritty fd fontconfig htop lf mpv vis \
@@ -21,6 +22,8 @@ ln -sfn "$h/.local/share/applications/lf.desktop" \
 	"$HOME/.local/share/applications/lf.desktop"
 ln -sfn "$h/.local/share/applications/vis.desktop" \
 	"$HOME/.local/share/applications/vis.desktop"
+ln -sfn "$h/.local/share/dbus-1/services/org.freedesktop.FileManager1.service" \
+	"$HOME/.local/share/dbus-1/services/org.freedesktop.FileManager1.service"
 ln -sf "$h/.local/share/fcitx5/rime/"* "$HOME/.local/share/fcitx5/rime/"
 
 # Helium policy and initial preferences are common; only the default browser differs.

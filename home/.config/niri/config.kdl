@@ -21,6 +21,11 @@ input {
     mouse { accel-speed 0.2; }
 }
 
+cursor {
+    xcursor-theme "Adwaita"
+    xcursor-size 24
+}
+
 // 默认让 Niri 根据连接的输出自动选择 DRM 设备，不固定 render node。
 
 layout {
@@ -80,7 +85,7 @@ animations { off ;}
 // swayidle 会用 shell 执行 timeout 命令，因此其中的 $HOME 会在锁屏时展开。
 spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""
 spawn-at-startup "swayidle" "-w" \
-    "timeout" "180" "swaylock -f -i $HOME/.config/niri/bg3.jpg" \
+    "timeout" "180" "swaylock -f -i $HOME/.config/niri/bg2.jpg" \
     "timeout" "240" "niri msg action power-off-monitors"
 spawn-at-startup "fcitx5"
 spawn-at-startup "pipewire"
@@ -95,17 +100,17 @@ Mod+c repeat=false { spawn "firefox" "--new-window"; }
 Mod+z repeat=false { spawn "Telegram"; }
 Mod+v repeat=false { toggle-overview; }
 Mod+p repeat=false { spawn-sh "grim - | swappy -f -"; }
-Mod+ctrl+p repeat=false { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
+Mod+shift+p repeat=false { spawn-sh "grim -g \"$(slurp)\" - | swappy -f -"; }
 Mod+r repeat=false { switch-preset-column-width; }
 
 Mod+s  cooldown-ms=70   { focus-column-left; }
 Mod+f  cooldown-ms=70   { focus-column-right; }
 Mod+e  cooldown-ms=70   { focus-window-or-workspace-up; }
 Mod+d  cooldown-ms=70  { focus-window-or-workspace-down; }
-Mod+ctrl+s cooldown-ms=70    { move-column-left; }
-Mod+ctrl+f cooldown-ms=70    { move-column-right; }
-Mod+ctrl+e cooldown-ms=70 { move-window-up-or-to-workspace-up; }
-Mod+ctrl+d cooldown-ms=70 { move-window-down-or-to-workspace-down; }
+Mod+shift+s cooldown-ms=70    { move-column-left; }
+Mod+shift+f cooldown-ms=70    { move-column-right; }
+Mod+shift+e cooldown-ms=70 { move-window-up-or-to-workspace-up; }
+Mod+shift+d cooldown-ms=70 { move-window-down-or-to-workspace-down; }
 
 Mod+alt+e cooldown-ms=70 { move-column-to-workspace-up; }
 Mod+alt+d cooldown-ms=70 { move-column-to-workspace-down; }

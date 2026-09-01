@@ -5,6 +5,8 @@ repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 lfrc=$repo/home/.config/lf/lfrc
 preview=$repo/home/.config/lf/preview
 archive=$repo/home/.local/bin/lf-archive
+detach=$repo/home/.local/bin/lf-detach
+show_items=$repo/home/.local/bin/lf-show-items
 portal=$repo/home/.config/xdg-desktop-portal/niri-portals.conf
 
 fail() {
@@ -15,12 +17,14 @@ fail() {
 [ -f "$lfrc" ] || fail 'LF main configuration exists'
 [ -x "$preview" ] || fail 'LF previewer is executable'
 [ -x "$archive" ] || fail 'safe LF archive helper exists'
-grep -Fx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$portal" >/dev/null || \
+[ -x "$detach" ] || fail 'detached launcher exists'
+[ -x "$show_items" ] || fail 'FileManager1 ShowItems adapter exists'
+grep -Fx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$portal" >/dev/null ||
 	fail 'Niri selects the terminal file chooser portal'
 if grep -Eiq 'river|wlr' "$portal"; then
 	fail 'Niri portal config contains stale River or wlroots backends'
 fi
-[ ! -e "$repo/home/.config/xdg-desktop-portal/river-portals.conf" ] || \
+[ ! -e "$repo/home/.config/xdg-desktop-portal/river-portals.conf" ] ||
 	fail 'stale River portal selector remains'
 sh -n "$preview"
 sh -n "$archive"
@@ -43,5 +47,39 @@ fi
 if (cd "$tmp" && "$archive" tar '' 'a file.txt') >/dev/null 2>&1; then
 	fail 'archive helper accepts an empty output name'
 fi
+
+# A GUI child must outlive the terminal-side process that launched it.
+cat >"$tmp/gui-child" <<'EOF'
+#!/bin/sh
+sleep 0.2
+printf 'alive\n' >"$LF_TEST_ALIVE"
+EOF
+chmod +x "$tmp/gui-child"
+LF_TEST_ALIVE="$tmp/alive" "$detach" "$tmp/gui-child"
+i=0
+while [ ! -s "$tmp/alive" ] && [ "$i" -lt 20 ]; do
+	sleep 0.05
+	i=$((i + 1))
+done
+[ "$(cat "$tmp/alive" 2>/dev/null || :)" = alive ] ||
+	fail 'detached GUI process survives its launcher'
+
+# ShowItems must preserve and select the file, not reduce it to its parent.
+mkdir "$tmp/bin"
+cat >"$tmp/bin/alacritty" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$@" >"$LF_TEST_ARGS"
+EOF
+chmod +x "$tmp/bin/alacritty"
+LF_TEST_ARGS="$tmp/args" PATH="$tmp/bin:$PATH" \
+	"$show_items" 'file:///tmp/a%20file%25.txt'
+i=0
+while [ ! -s "$tmp/args" ] && [ "$i" -lt 20 ]; do
+	sleep 0.05
+	i=$((i + 1))
+done
+expected=$(printf '%s\n' '--title' 'lf: /tmp/a file%.txt' '-e' 'lf' '-single' '/tmp/a file%.txt')
+[ "$(cat "$tmp/args" 2>/dev/null || :)" = "$expected" ] ||
+	fail 'ShowItems selects the decoded file path in lf'
 
 printf 'ok - LF previews text and archives selections without deleting input\n'
