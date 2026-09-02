@@ -26,7 +26,7 @@ grep -Fq 'mode "2560x1600@60.003"' "$root/home/.config/niri/config.kdl" || fail 
 grep -Fq '/-output "ASUS_PANEL_MODEL"' "$root/home/.config/niri/config.kdl" || fail 'ASUS panel rule has a disabled placeholder'
 grep -Fq 'spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""' \
 	"$root/home/.config/niri/config.kdl" || fail 'wallpaper path follows HOME'
-grep -Fq 'swaylock -f -i $HOME/.config/niri/bg3.jpg' \
+grep -Fq 'swaylock -f -i $HOME/.config/niri/bg2.jpg' \
 	"$root/home/.config/niri/config.kdl" || fail 'lock image path follows HOME'
 if grep -Riq 'satty' "$root/20-pkg-base.sh" "$root/60-pkg-apps.sh" "$root/home/.config/niri"; then
 	fail 'Satty remains in the active setup'
