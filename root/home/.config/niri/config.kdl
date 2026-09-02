@@ -58,15 +58,15 @@ window-rule {
     default-window-height { proportion 0.8; }
 }
 
-// 两台内屏各用型号规则；ASUS 查到精确值后启用占位段。
+// MSI 有精确面板标识；ASUS 旧配置只记录了内屏连接器名称。
 output "AU Optronics 0x0FA7 Unknown" {
        scale 1.5
        mode "2560x1600@60.003"
 }
 
-/-output "ASUS_PANEL_MODEL" {
+output "eDP-1" {
        scale 1.5
-       mode "2560x1600@ASUS_60_HZ"
+       mode "2560x1600@60"
 }
 
 // Put swaybg inside the overview backdrop.

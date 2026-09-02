@@ -18,10 +18,10 @@ set mouse
 set period 1
 
 # Keep download folders ordered with the newest files first.
-setlocal /home/xfn/Downloads sortby time
-setlocal /home/xfn/Downloads reverse
-setlocal "/home/xfn/Downloads/Telegram Desktop" sortby time
-setlocal "/home/xfn/Downloads/Telegram Desktop" reverse
+setlocal ~/Downloads sortby time
+setlocal ~/Downloads reverse
+setlocal "~/Downloads/Telegram Desktop" sortby time
+setlocal "~/Downloads/Telegram Desktop" reverse
 
 cmd open ${{
 	set -f

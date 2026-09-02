@@ -27,6 +27,10 @@ grep -q 'wireplumber' "$repo/20-pkg-base.sh" || fail 'WirePlumber is common'
 grep -q 'firefox' "$repo/60-pkg-apps.sh" || fail 'Firefox is installed on both hosts'
 [ -x "$repo/90-helium.sh" ] || fail 'Helium is installed on both hosts'
 grep -q 'firefox.desktop' "$repo/root/home/.config/mimeapps.list" || fail 'Firefox associations are common'
+[ -f "$repo/root/etc/tlp.d/10-laptop.conf" ] || fail 'TLP profile still has a user-specific filename'
+if grep -Rqs '10-xfn.conf' "$repo/msi" "$repo/root/etc/tlp.d"; then
+	fail 'TLP profile still uses a user-specific name'
+fi
 
 for host in msi asus; do
 	if find "$repo/$host" -type f ! -name '*.sh' | grep -q .; then

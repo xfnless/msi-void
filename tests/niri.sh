@@ -31,7 +31,11 @@ if grep -Eq '/home/' "$root/root/home/.config/niri/config.kdl"; then
 fi
 grep -Fq 'output "AU Optronics 0x0FA7 Unknown"' "$root/root/home/.config/niri/config.kdl" || fail 'MSI panel has an exact output rule'
 grep -Fq 'mode "2560x1600@60.003"' "$root/root/home/.config/niri/config.kdl" || fail 'MSI panel is fixed to 60 Hz'
-grep -Fq '/-output "ASUS_PANEL_MODEL"' "$root/root/home/.config/niri/config.kdl" || fail 'ASUS panel rule has a disabled placeholder'
+grep -Fq 'output "eDP-1"' "$root/root/home/.config/niri/config.kdl" || fail 'ASUS panel connector is missing'
+grep -Fq 'mode "2560x1600@60"' "$root/root/home/.config/niri/config.kdl" || fail 'ASUS panel is not fixed to 60 Hz'
+if grep -Fq 'ASUS_PANEL_MODEL' "$root/root/home/.config/niri/config.kdl"; then
+	fail 'ASUS panel placeholder remains'
+fi
 grep -Fq 'spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg.jpg\""' \
 	"$root/root/home/.config/niri/config.kdl" || fail 'wallpaper path follows HOME'
 grep -Fq 'swaylock -f -i $HOME/.config/niri/lock.jpg' \

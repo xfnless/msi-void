@@ -124,4 +124,9 @@ fi
 grep -Fxq 'set infotimefmtnew "01-02 15:04"' "$lfrc" || fail 'current-year dates are not compact numeric values'
 grep -Fxq 'set infotimefmtold "2006-01-02"' "$lfrc" || fail 'older dates are not numeric values'
 grep -Fxq 'set timefmt "2006-01-02 15:04:05"' "$lfrc" || fail 'bottom timestamps are not numeric values'
+if grep -Fq '/home/xfn' "$lfrc"; then
+	fail 'LF configuration contains a hard-coded user home'
+fi
+grep -Fxq 'Exec=lf-show-items --service' "$repo/root/home/.local/share/dbus-1/services/org.freedesktop.FileManager1.service" ||
+	fail 'FileManager1 service contains a hard-coded user executable path'
 printf 'ok - LF has recoverable deletion and compact file utilities\n'
