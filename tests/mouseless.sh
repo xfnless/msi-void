@@ -2,14 +2,19 @@
 set -eu
 
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-config=$repo/root/etc/mouseless/config.yaml
-run=$repo/root/etc/sv/mouseless/run
+config=$repo/root/home/.config/mouseless/config.yaml
 installer=$repo/75-mouseless.sh
+niri=$repo/root/home/.config/niri/config.kdl
 fail() { printf 'not ok - %s\n' "$1" >&2; exit 1; }
 
 [ -f "$config" ] || fail 'Mouseless config is missing'
-[ -x "$run" ] || fail 'Mouseless runit service is missing or not executable'
 [ -x "$installer" ] || fail 'Mouseless installer is missing or not executable'
+[ ! -e "$repo/root/etc/sv/mouseless" ] || fail 'Mouseless still has a root runit service'
+[ ! -e "$repo/root/etc/mouseless" ] || fail 'Mouseless config remains under /etc'
+
+grep -Fq 'devices:' "$config" || fail 'Mouseless does not restrict input devices'
+grep -Fq -- '- "keyd virtual keyboard"' "$config" ||
+	fail 'Mouseless still captures physical keyboards'
 
 for mapping in \
 	'f13: move 0 -1' 'f14: move 0 1' 'f15: move -1 0' 'f16: move 1 0' \
@@ -20,10 +25,15 @@ done
 
 grep -Fq 'go install github.com/jbensmann/mouseless@latest' "$installer" ||
 	fail 'installer does not build official Mouseless'
-grep -Fq '/etc/sv/mouseless /var/service/mouseless' "$installer" ||
-	fail 'installer does not enable the runit service'
-grep -Fq '/usr/local/bin/mouseless --config /etc/mouseless/config.yaml' "$run" ||
-	fail 'service does not use the installed configuration'
+grep -Fq 'usermod -aG input,uinput "$USER"' "$installer" ||
+	fail 'installer does not grant user input permissions'
+grep -Fq 'spawn-at-startup "mouseless"' "$niri" ||
+	fail 'Niri does not start Mouseless after login'
+if grep -Eq 'spawn-at-startup "mouseless".*--config' "$niri"; then
+	fail 'Niri overrides the default user config path'
+fi
+grep -Fq 'mouseless; do' "$repo/70-link-apps.sh" ||
+	fail 'user Mouseless config is not linked'
 grep -Fxq 'sh 75-mouseless.sh' "$repo/flow.txt" || fail 'flow omits Mouseless'
 
-printf 'ok - keyd function keys drive the Mouseless runit service\n'
+printf 'ok - Niri starts user Mouseless after keyd\n'

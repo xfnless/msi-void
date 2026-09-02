@@ -11,7 +11,7 @@ mkdir -p "$HOME/.config" "$HOME/.local/bin" \
 ln -sfn "$h/.npmrc" "$HOME/.npmrc"
 ln -sfn "$h/.config/mimeapps.list" "$HOME/.config/mimeapps.list"
 for name in alacritty fd fontconfig htop lf mpv vis \
-	xdg-desktop-portal xdg-desktop-portal-termfilechooser; do
+	xdg-desktop-portal xdg-desktop-portal-termfilechooser mouseless; do
 	ln -sfnT "$h/.config/$name" "$HOME/.config/$name"
 done
 

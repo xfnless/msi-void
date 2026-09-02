@@ -10,13 +10,13 @@ for path in archive/home/.emacs.d archive/home/.config/nvim \
 done
 
 for path in Documents home etc home/.emacs.d home/.config/nvim \
-	root/home/.config/foot root/home/.config/mouseless root/home/.asoundrc \
+	root/home/.config/foot root/home/.asoundrc \
 	keyd grub msi/grub asus/grub 86-dns.sh etc/resolv.conf.head; do
 	[ ! -e "$repo/$path" ] || fail "inactive or private path is active: $path"
 done
 
 common_files="$repo/20-pkg-base.sh $repo/40-sv-base.sh $repo/50-link-home.sh $repo/60-pkg-apps.sh $repo/70-link-apps.sh $repo/root/home/.bashrc"
-if grep -Eiq 'intel|amd|sof|tlp|iwlwifi|efibootmgr|nameserver|mouseless|foot|neovim|emacs' $common_files; then
+if grep -Eiq 'intel|amd|sof|tlp|iwlwifi|efibootmgr|nameserver|foot|neovim|emacs' $common_files; then
 	fail 'common setup contains host hardware or rejected software'
 fi
 if grep -Riq 'nouveau' "$repo/asus"; then
