@@ -58,15 +58,15 @@ window-rule {
     default-window-height { proportion 0.8; }
 }
 
-// MSI 有精确面板标识；ASUS 旧配置只记录了内屏连接器名称。
+// 两台内屏都使用精确 EDID 型号，避免连接器名称变化或相互覆盖。
 output "AU Optronics 0x0FA7 Unknown" {
        scale 1.5
        mode "2560x1600@60.003"
 }
 
-output "eDP-1" {
+output "Tianma Microelectronics Ltd. TL140ADMP01 Unknown" {
        scale 1.5
-       mode "2560x1600@60"
+       mode "2560x1600@60.000"
 }
 
 // Put swaybg inside the overview backdrop.
