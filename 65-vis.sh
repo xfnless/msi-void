@@ -34,3 +34,4 @@ make -C test/vis
 make install
 
 "$prefix/bin/vis" -v
+printf '%s\n' 'Vis 已安装；重新打开 Vis 即使用新版本。'

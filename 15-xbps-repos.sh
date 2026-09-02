@@ -6,3 +6,4 @@ dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 sudo install -d /etc/xbps.d
 sudo install -m 644 "$dir/root/etc/xbps.d/00-repository-main.conf" /etc/xbps.d/00-repository-main.conf
 sudo install -m 644 "$dir/root/etc/xbps.d/20-nonfree.conf" /etc/xbps.d/20-nonfree.conf
+printf '%s\n' 'XBPS 软件源已安装，下次运行 xbps-install 时使用。'

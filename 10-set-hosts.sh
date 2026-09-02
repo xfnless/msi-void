@@ -6,3 +6,4 @@ cat >/etc/hosts <<EOF
 127.0.1.1	${h}.localdomain	${h}
 ::1		localhost.localdomain	localhost ip6-localhost
 EOF
+printf '%s\n' 'hosts 已写入，立即生效。'

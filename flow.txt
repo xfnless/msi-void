@@ -1,6 +1,6 @@
 # Run the common scripts, then only the block for this machine.
 void-installer
-# Reboot and log in.
+# void-installer 完成后：重启，进入新安装的系统。
 sudo sh 10-set-hosts.sh
 sh 15-xbps-repos.sh
 sh 20-pkg-base.sh
@@ -21,3 +21,8 @@ sh msi/85-power.sh
 sh asus/20-pkg-hardware.sh
 sh asus/80-grub.sh
 sh asus/85-power.sh
+
+# 设备脚本完成后：无需立即重启；GRUB、微码、固件和内核模块参数在下次重启生效。
+# 公共脚本完成后：退出当前登录会话，再重新登录，使 _seatd 用户组生效。
+# TTY：执行 exit 后重新登录。
+# Niri：退出整个会话后重新登录；只关闭终端不够。

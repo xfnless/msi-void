@@ -20,3 +20,9 @@ for service in /var/service/*; do
 	sudo touch "$target/log/down"
 	sudo sv down "$service/log" 2>/dev/null || true
 done
+
+printf '%s\n' \
+	'公共服务已启用，立即生效。' \
+	'用户组变更将在下次登录生效。' \
+	'TTY：执行 exit 后重新登录。' \
+	'Niri：退出整个会话后重新登录；只关闭终端不够。'

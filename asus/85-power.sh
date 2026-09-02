@@ -11,3 +11,6 @@ sudo install -o root -g root -m 755 -D \
 	"$repo/root/etc/wpa_supplicant/action-reconnect.sh" \
 	/etc/wpa_supplicant/action-reconnect.sh
 sudo /etc/rc.local
+printf '%s\n' \
+	'电池限制和重连脚本已立即应用。' \
+	'iwlwifi 模块参数在下次重启后生效。'

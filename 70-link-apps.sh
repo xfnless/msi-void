@@ -37,3 +37,4 @@ sudo install -o root -g root -m 644 \
 	"$dir/root/etc/chromium/policies/recommended/helium.json" \
 	/etc/chromium/policies/recommended/helium.json
 "$h/.local/bin/helium-seed-prefs" || true
+printf '%s\n' '应用配置已链接；正在运行的应用需重新打开。'

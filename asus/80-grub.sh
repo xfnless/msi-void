@@ -20,3 +20,4 @@ sudo update-grub
 sudo efibootmgr -o 0000,0001
 
 echo "看结果：efibootmgr ；菜单预览：grep menuentry /boot/grub/grub.cfg"
+printf '%s\n' 'GRUB 已更新；启动行为在下次重启时生效。'

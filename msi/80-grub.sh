@@ -39,3 +39,4 @@ win=$(efibootmgr | sed -n 's/^Boot\([0-9A-Fa-f]*\)\* Windows Boot Manager.*/\1/p
 sudo efibootmgr --bootorder "$void,$win"
 
 echo "看结果：efibootmgr ；菜单预览：grep menuentry /boot/grub/grub.cfg"
+printf '%s\n' 'GRUB 已更新；启动行为在下次重启时生效。'

@@ -11,3 +11,4 @@ sudo xbps-install -S \
 	fcitx5 fcitx5-rime keyd \
 	bash-completion git fastfetch \
 	font-inconsolata-otf wqy-microhei
+printf '%s\n' '公共软件包已安装；程序可立即运行。'
