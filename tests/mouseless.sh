@@ -36,4 +36,23 @@ grep -Fq 'mouseless; do' "$repo/70-link-apps.sh" ||
 	fail 'user Mouseless config is not linked'
 grep -Fxq 'sh 75-mouseless.sh' "$repo/flow.txt" || fail 'flow omits Mouseless'
 
+# Exercise the real installer while replacing only network and privileged
+# operations. The built executable must land in the invoking user's home.
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+mkdir -p "$tmp/bin" "$tmp/home"
+cat >"$tmp/bin/go" <<'EOF'
+#!/bin/sh
+printf '#!/bin/sh\nexit 0\n' >"$GOBIN/mouseless"
+chmod +x "$GOBIN/mouseless"
+EOF
+cat >"$tmp/bin/sudo" <<'EOF'
+#!/bin/sh
+exit 0
+EOF
+chmod +x "$tmp/bin/go" "$tmp/bin/sudo"
+HOME="$tmp/home" USER=test PATH="$tmp/bin:$PATH" sh "$installer" >/dev/null
+[ -x "$tmp/home/.local/bin/mouseless" ] ||
+	fail 'installer does not place Mouseless in the user bin directory'
+
 printf 'ok - Niri starts user Mouseless after keyd\n'

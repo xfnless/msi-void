@@ -7,7 +7,11 @@ trap 'rm -rf "$mouseless_tmp"' EXIT HUP INT TERM
 
 GOBIN=$mouseless_tmp go install github.com/jbensmann/mouseless@latest
 
-sudo install -o root -g root -m 755 "$mouseless_tmp/mouseless" /usr/local/bin/mouseless
+mkdir -p "$HOME/.local/bin"
+install -m 755 "$mouseless_tmp/mouseless" "$HOME/.local/bin/mouseless"
+
+# Remove the former system-wide binary when upgrading this configuration.
+sudo rm -f /usr/local/bin/mouseless
 sudo groupadd -f -r uinput
 sudo usermod -aG input,uinput "$USER"
 sudo install -o root -g root -m 644 -D \
