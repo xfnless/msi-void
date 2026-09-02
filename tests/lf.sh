@@ -91,6 +91,15 @@ grep -Fq 'basename -- "$path"' "$lfrc" || fail 'file names cannot be copied'
 grep -Fxq 'map yp copy_path' "$lfrc" || fail 'yp does not copy paths'
 grep -Fxq 'map yn copy_name' "$lfrc" || fail 'yn does not copy names'
 grep -Fxq 'set dircounts' "$lfrc" || fail 'directory item counts are not enabled'
-grep -Fxq 'map zc set dircounts!' "$lfrc" || fail 'zc does not toggle directory counts'
-grep -Fq 'map zd :set nodircounts; calcdirsize' "$lfrc" || fail 'zd does not calculate directory size'
+if grep -Eq '^map zc([[:space:]]|$)' "$lfrc"; then
+	fail 'directory counts can still be disabled globally'
+fi
+grep -Fq 'du -sh -- "$f"' "$lfrc" || fail 'directory size is not calculated for the current item'
+grep -Fxq 'map zd dir_size' "$lfrc" || fail 'zd does not show the current directory size'
+if grep -Fq 'set nodircounts' "$lfrc"; then
+	fail 'calculating one directory still disables counts globally'
+fi
+grep -Fxq 'set infotimefmtnew "01-02 15:04"' "$lfrc" || fail 'current-year dates are not compact numeric values'
+grep -Fxq 'set infotimefmtold "2006-01-02"' "$lfrc" || fail 'older dates are not numeric values'
+grep -Fxq 'set timefmt "2006-01-02 15:04:05"' "$lfrc" || fail 'bottom timestamps are not numeric values'
 printf 'ok - LF has recoverable deletion and compact file utilities\n'

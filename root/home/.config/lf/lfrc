@@ -10,6 +10,9 @@ set ignorecase
 set smartcase
 set info size:time
 set dircounts
+set infotimefmtnew "01-02 15:04"
+set infotimefmtold "2006-01-02"
+set timefmt "2006-01-02 15:04:05"
 set scrolloff 3
 set mouse
 set period 1
@@ -70,8 +73,12 @@ cmd copy_name ${{
 }}
 map yn copy_name
 
-map zc set dircounts!
-map zd :set nodircounts; calcdirsize
+cmd dir_size %{{
+	set -f
+	[ -d "$f" ] || { printf 'not a directory: %s\n' "$f"; exit 1; }
+	du -sh -- "$f"
+}}
+map zd dir_size
 
 cmd fzf_jump ${{
 	set -f
