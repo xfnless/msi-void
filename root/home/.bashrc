@@ -5,7 +5,7 @@
 # 非交互 shell 不加载这些配置
 [[ $- != *i* ]] && return
 # Prompt
-PS1='\n\[\e[1m\]\A \W\$ \[\e[0m\]'
+PS1='\[\e[1m\]\A \W\$ \[\e[0m\]'
 
 # 补全和 fzf
 [[ $PS1 && -f /usr/share/bash-completion/bash_completion ]] &&
