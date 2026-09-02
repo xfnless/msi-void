@@ -9,6 +9,7 @@ set hidden
 set ignorecase
 set smartcase
 set info size:time
+set dircounts
 set scrolloff 3
 set mouse
 set period 1
@@ -48,7 +49,29 @@ map <right> open
 map <enter> open
 map a :push %touch<space>
 map A :push %mkdir<space>
-map D delete
+
+cmd trash ${{
+	set -f
+	gio trash -- $fx
+}}
+map D trash
+
+cmd copy_path ${{
+	set -f
+	printf '%s\n' $fx | wl-copy
+}}
+map yp copy_path
+
+cmd copy_name ${{
+	set -f
+	for path in $fx; do
+		basename -- "$path"
+	done | wl-copy
+}}
+map yn copy_name
+
+map zc set dircounts!
+map zd :set nodircounts; calcdirsize
 
 cmd fzf_jump ${{
 	set -f

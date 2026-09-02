@@ -1,0 +1,22 @@
+baseMouseSpeed: 750.0
+baseScrollSpeed: 20.0
+
+# keyd owns the mouse layer and emits otherwise-unused F13-F24 keys.
+layers:
+- name: initial
+  passThrough: true
+  bindings:
+    f13: move 0 -1
+    f14: move 0 1
+    f15: move -1 0
+    f16: move 1 0
+
+    f17: speed 0.1
+    f18: speed 0.3
+    f19: speed 2.0
+    f20: speed 4.0
+
+    f21: scroll up
+    f22: scroll down
+    f23: scroll left
+    f24: scroll right

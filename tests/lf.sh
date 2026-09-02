@@ -83,3 +83,14 @@ expected=$(printf '%s\n' '--title' 'lf: /tmp/a file%.txt' '-e' 'lf' '-single' '/
 	fail 'ShowItems selects the decoded file path in lf'
 
 printf 'ok - LF previews text and archives selections without deleting input\n'
+
+grep -Fq 'gio trash -- $fx' "$lfrc" || fail 'D does not use the standard trash'
+grep -Fxq 'map D trash' "$lfrc" || fail 'D is not mapped to trash'
+grep -Fq "printf '%s\\n' \$fx | wl-copy" "$lfrc" || fail 'full paths cannot be copied'
+grep -Fq 'basename -- "$path"' "$lfrc" || fail 'file names cannot be copied'
+grep -Fxq 'map yp copy_path' "$lfrc" || fail 'yp does not copy paths'
+grep -Fxq 'map yn copy_name' "$lfrc" || fail 'yn does not copy names'
+grep -Fxq 'set dircounts' "$lfrc" || fail 'directory item counts are not enabled'
+grep -Fxq 'map zc set dircounts!' "$lfrc" || fail 'zc does not toggle directory counts'
+grep -Fq 'map zd :set nodircounts; calcdirsize' "$lfrc" || fail 'zd does not calculate directory size'
+printf 'ok - LF has recoverable deletion and compact file utilities\n'

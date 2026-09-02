@@ -10,6 +10,7 @@ sh 50-link-home.sh
 sh 60-pkg-apps.sh
 sh 65-vis.sh
 sh 70-link-apps.sh
+sh 75-mouseless.sh
 sh 90-helium.sh
 
 # MSI
