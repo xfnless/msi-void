@@ -83,9 +83,9 @@ animations { off ;}
 // dbus-update-activation-environment。
 // swaybg 用 exec 替换临时 shell，使 $HOME 能展开且不留下常驻 sh。
 // swayidle 会用 shell 执行 timeout 命令，因此其中的 $HOME 会在锁屏时展开。
-spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg4.jpg\""
+spawn-at-startup "sh" "-c" "exec swaybg -i \"$HOME/.config/niri/bg.jpg\""
 spawn-at-startup "swayidle" "-w" \
-    "timeout" "180" "swaylock -f -i $HOME/.config/niri/bg2.jpg" \
+    "timeout" "180" "swaylock -f -i $HOME/.config/niri/lock.jpg" \
     "timeout" "240" "niri msg action power-off-monitors"
 spawn-at-startup "fcitx5"
 spawn-at-startup "pipewire"
