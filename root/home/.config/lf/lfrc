@@ -76,7 +76,8 @@ map yn copy_name
 cmd dir_size %{{
 	set -f
 	[ -d "$f" ] || { printf 'not a directory: %s\n' "$f"; exit 1; }
-	du -sh -- "$f"
+	size=$(du -sh -- "$f" | cut -f1)
+	printf '目录大小: %s\n' "$size"
 }}
 map zd dir_size
 

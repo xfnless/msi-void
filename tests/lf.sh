@@ -94,7 +94,11 @@ grep -Fxq 'set dircounts' "$lfrc" || fail 'directory item counts are not enabled
 if grep -Eq '^map zc([[:space:]]|$)' "$lfrc"; then
 	fail 'directory counts can still be disabled globally'
 fi
-grep -Fq 'du -sh -- "$f"' "$lfrc" || fail 'directory size is not calculated for the current item'
+grep -Fq 'size=$(du -sh -- "$f" | cut -f1)' "$lfrc" || fail 'directory size is not extracted without its tab-separated path'
+grep -Fq "printf '目录大小: %s\\n' \"\$size\"" "$lfrc" || fail 'directory size has no compact bottom-line message'
+if grep -Eq '^[[:space:]]*du -sh -- "\$f"[[:space:]]*$' "$lfrc"; then
+	fail 'raw du output still leaks a tab and full path into the bottom line'
+fi
 grep -Fxq 'map zd dir_size' "$lfrc" || fail 'zd does not show the current directory size'
 if grep -Fq 'set nodircounts' "$lfrc"; then
 	fail 'calculating one directory still disables counts globally'
