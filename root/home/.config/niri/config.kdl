@@ -93,7 +93,6 @@ spawn-at-startup "alacritty"
 spawn-at-startup "wlsunset" "-l" "20" "-L" "100"
 
 binds {
-Mod+w repeat=false { spawn "wl-kbptr" "-o" "modes=floating,click" "-o" "mode_floating.source=detect"; }
 Mod+escape repeat=false { power-off-monitors; }
 Mod+a repeat=false { spawn "alacritty"; }
 Mod+c repeat=false { spawn "firefox" "--new-window"; }
@@ -120,9 +119,9 @@ Mod+alt+f cooldown-ms=70 { consume-or-expel-window-right; }
 
 XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "set" "2%-"; }
 XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "set" "2%+"; }
-XF86AudioLowerVolume allow-when-locked=true { spawn "amixer" "set" "Master" "2%-"; }
-XF86AudioRaiseVolume allow-when-locked=true { spawn "amixer" "set" "Master" "2%+"; }
-XF86AudioMute allow-when-locked=true { spawn "amixer" "set" "Master" "toggle"; }
+XF86AudioLowerVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "2%-"; }
+XF86AudioRaiseVolume allow-when-locked=true { spawn "wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "2%+"; }
+XF86AudioMute allow-when-locked=true { spawn "wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"; }
 
 Mod+WheelScrollDown cooldown-ms=70 { focus-workspace-down; }
 Mod+WheelScrollUp   cooldown-ms=70 { focus-workspace-up; }

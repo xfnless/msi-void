@@ -8,6 +8,6 @@ sudo xbps-install -S \
 	imv mpv zathura zathura-pdf-poppler \
 	xdg-desktop-portal-termfilechooser xdg-utils \
 	lf python3-dbus python3-gobject curl fd fzf ripgrep bat chafa htop xz \
-	StyLua shfmt ruff nodejs \
-	nss nspr telegram-desktop
+	StyLua shfmt ruff go nodejs \
+	telegram-desktop
 printf '%s\n' '应用软件包已安装；程序可立即运行。'

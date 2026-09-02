@@ -2,6 +2,7 @@
 set -eu
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 status=$repo/root/home/.config/vis/my/status.lua
+formatter=$repo/root/home/.config/vis/my/formatter.lua
 
 fail() {
 	printf 'not ok - %s\n' "$1" >&2
@@ -12,6 +13,11 @@ grep -q 'vis.ui:style_push' "$status" || fail 'status styles use the current Vis
 if grep -q 'STYLE_LEXER_MAX\|win:style_define' "$status"; then
 	fail 'status styles still use removed window style APIs'
 fi
+
+grep -Eq '(^|[[:space:]])go([[:space:]\\]|$)' "$repo/60-pkg-apps.sh" ||
+	fail 'Go formatter is not installed'
+grep -Fq 'syntax == "go"' "$formatter" || fail 'Vis does not recognize Go files'
+grep -Fq 'return "gofmt"' "$formatter" || fail 'Vis does not format Go with gofmt'
 
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM

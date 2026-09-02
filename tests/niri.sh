@@ -13,7 +13,15 @@ grep -q '^ni() {' "$root/root/home/.bashrc" || fail 'ni starts Niri from a TTY'
 grep -Fq 'dbus-run-session niri --session' "$root/root/home/.bashrc" || fail 'Niri runs in a D-Bus session'
 grep -Fq 'ln -sfnT "$h/.config/niri" "$HOME/.config/niri"' "$root/50-link-home.sh" || fail 'Niri config is linked'
 grep -Eq '(^|[[:space:]])niri([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'Niri is installed'
-grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh" || fail 'amixer is installed'
+if grep -Eq '(^|[[:space:]])alsa-utils([[:space:]\\]|$)' "$root/20-pkg-base.sh"; then
+	fail 'ALSA mixer utility remains explicitly installed'
+fi
+grep -Fq 'wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "2%-"' \
+	"$root/root/home/.config/niri/config.kdl" || fail 'volume down uses PipeWire'
+grep -Fq 'wpctl" "set-volume" "@DEFAULT_AUDIO_SINK@" "2%+"' \
+	"$root/root/home/.config/niri/config.kdl" || fail 'volume up uses PipeWire'
+grep -Fq 'wpctl" "set-mute" "@DEFAULT_AUDIO_SINK@" "toggle"' \
+	"$root/root/home/.config/niri/config.kdl" || fail 'mute uses PipeWire'
 grep -Eq '(^|[[:space:]])swappy([[:space:]\\]|$)' "$root/60-pkg-apps.sh" || fail 'Swappy is installed'
 grep -Fq '| swappy -f -' "$root/root/home/.config/niri/config.kdl" || fail 'screenshots open in Swappy'
 grep -Fq 'xcursor-theme "Adwaita"' "$root/root/home/.config/niri/config.kdl" || fail 'Niri uses the installed cursor theme'

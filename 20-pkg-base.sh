@@ -4,10 +4,10 @@ set -eu
 
 sudo xbps-install -Syu
 sudo xbps-install -S \
-	alacritty dbus seatd niri xwayland-satellite \
-	swaybg wl-kbptr \
+	alacritty dbus seatd niri \
+	swaybg \
 	swayidle swaylock wlsunset wl-clipboard brightnessctl \
-	pipewire wireplumber alsa-pipewire alsa-utils bluez \
+	pipewire wireplumber alsa-pipewire bluez \
 	fcitx5 fcitx5-rime keyd \
 	bash-completion git fastfetch \
 	font-inconsolata-otf wqy-microhei

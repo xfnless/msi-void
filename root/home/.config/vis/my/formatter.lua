@@ -33,6 +33,7 @@ local function default_command(win)
   if syntax == "lua" then return "stylua -" end
   if syntax == "bash" or syntax == "sh" then return "shfmt" .. with_path(win, " --filename ") .. " -" end
   if syntax == "python" then return "ruff format" .. with_path(win, " --stdin-filename ") .. " -" end
+  if syntax == "go" then return "gofmt" end
 
   return nil
 end
