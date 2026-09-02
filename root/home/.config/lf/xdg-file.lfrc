@@ -1,4 +1,16 @@
-# XDG file chooser: Enter confirms a file and enters a directory.
-map <enter> open
-map l open
-map <right> open
+# Reuse the normal LF setup; only Enter is specialized for portal selection.
+source ~/.config/lf/lfrc
+
+cmd xdg-accept-file ${{
+	set -f
+	[ -n "${LF_XDG_OUT:-}" ] || exit 1
+	if [ -d "$f" ]; then
+		escaped=$(printf '%s' "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')
+		lf -remote "send $id cd \"$escaped\""
+		exit 0
+	fi
+	printf '%s\n' $fx >"$LF_XDG_OUT"
+	lf -remote "send $id quit"
+}}
+
+map <enter> xdg-accept-file

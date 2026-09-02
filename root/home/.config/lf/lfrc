@@ -25,6 +25,11 @@ setlocal "/home/xfn/Downloads/Telegram Desktop" reverse
 
 cmd open ${{
 	set -f
+	if [ -d "$f" ]; then
+		escaped=$(printf '%s' "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')
+		lf -remote "send $id cd \"$escaped\""
+		exit 0
+	fi
 	case $(file --mime-type -Lb -- "$f") in
 	text/*|application/json|application/xml|application/javascript|\
 	application/x-sh|application/x-shellscript|application/x-zerosize|inode/x-empty)
@@ -71,6 +76,8 @@ cmd copy_name ${{
 		basename -- "$path"
 	done | wl-copy
 }}
+map y
+map yc copy
 map yn copy_name
 
 cmd dir_size %{{
@@ -85,6 +92,7 @@ cmd fzf_jump ${{
 	set -f
 	target=$(fd --type f --type d --hidden --follow --exclude .git 2>/dev/null | fzf) || exit 0
 	[ -n "$target" ] || exit 0
+	target=$(realpath -- "$target")
 	escaped=$(printf '%s' "$target" | sed 's/\\/\\\\/g;s/"/\\"/g')
 	lf -remote "send $id select \"$escaped\""
 }}
@@ -97,6 +105,7 @@ cmd fzf_rg ${{
 	target=$(rg -l --hidden --glob '!.git' -- "$pattern" 2>/dev/null | fzf \
 		--preview "rg -n --color=always -- \"$pattern\" {} 2>/dev/null | head -100") || exit 0
 	[ -n "$target" ] || exit 0
+	target=$(realpath -- "$target")
 	escaped=$(printf '%s' "$target" | sed 's/\\/\\\\/g;s/"/\\"/g')
 	lf -remote "send $id select \"$escaped\""
 }}

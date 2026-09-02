@@ -1,5 +1,7 @@
 # XDG directory chooser: Enter selects the highlighted directory.
 # l/right remain navigation keys.
+source ~/.config/lf/lfrc
+
 cmd xdg-accept-directory ${{
     [ -n "${LF_XDG_OUT:-}" ] || exit 1
     [ -d "$f" ] || exit 1
@@ -8,5 +10,3 @@ cmd xdg-accept-directory ${{
 }}
 
 map <enter> xdg-accept-directory
-map l open
-map <right> open

@@ -3,6 +3,9 @@ set -eu
 
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 lfrc=$repo/root/home/.config/lf/lfrc
+file_lfrc=$repo/root/home/.config/lf/xdg-file.lfrc
+directory_lfrc=$repo/root/home/.config/lf/xdg-directory.lfrc
+chooser=$repo/root/home/.config/xdg-desktop-portal-termfilechooser/lf-wrapper.sh
 preview=$repo/root/home/.config/lf/preview
 archive=$repo/root/home/.local/bin/lf-archive
 detach=$repo/root/home/.local/bin/lf-detach
@@ -88,8 +91,21 @@ grep -Fq 'gio trash -- $fx' "$lfrc" || fail 'D does not use the standard trash'
 grep -Fxq 'map D trash' "$lfrc" || fail 'D is not mapped to trash'
 grep -Fq "printf '%s\\n' \$fx | wl-copy" "$lfrc" || fail 'full paths cannot be copied'
 grep -Fq 'basename -- "$path"' "$lfrc" || fail 'file names cannot be copied'
+grep -Fxq 'map y' "$lfrc" || fail 'the built-in immediate y mapping still blocks y-prefix bindings'
+grep -Fxq 'map yc copy' "$lfrc" || fail 'yc does not copy selected files'
 grep -Fxq 'map yp copy_path' "$lfrc" || fail 'yp does not copy paths'
 grep -Fxq 'map yn copy_name' "$lfrc" || fail 'yn does not copy names'
+grep -Fq '[ -d "$f" ]' "$lfrc" || fail 'open does not distinguish directories from files'
+grep -Fq 'send $id cd' "$lfrc" || fail 'Enter cannot enter the highlighted directory'
+grep -Fq 'target=$(realpath -- "$target")' "$lfrc" || fail 'fzf jumps do not resolve an unambiguous absolute target'
+grep -Fxq 'source ~/.config/lf/lfrc' "$file_lfrc" || fail 'file chooser does not reuse the main LF config'
+grep -Fxq 'source ~/.config/lf/lfrc' "$directory_lfrc" || fail 'directory chooser does not reuse the main LF config'
+grep -Fxq 'map <enter> xdg-accept-file' "$file_lfrc" || fail 'file chooser Enter does not confirm the selected file'
+grep -Fxq 'map <enter> xdg-accept-directory' "$directory_lfrc" || fail 'directory chooser Enter does not confirm the selected directory'
+if grep -Fq -- '-single' "$chooser"; then
+	fail 'portal LF disables remote jumps with -single'
+fi
+sh -n "$chooser"
 grep -Fxq 'set dircounts' "$lfrc" || fail 'directory item counts are not enabled'
 if grep -Eq '^map zc([[:space:]]|$)' "$lfrc"; then
 	fail 'directory counts can still be disabled globally'
