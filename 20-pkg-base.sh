@@ -7,7 +7,7 @@ sudo xbps-install -S \
 	alacritty dbus seatd niri xwayland-satellite \
 	swaybg wl-kbptr \
 	swayidle swaylock wlsunset wl-clipboard brightnessctl \
-	pipewire wireplumber alsa-pipewire alsa-utils \
+	pipewire wireplumber alsa-pipewire alsa-utils bluez \
 	fcitx5 fcitx5-rime keyd \
 	bash-completion git fastfetch \
 	font-inconsolata-otf wqy-microhei

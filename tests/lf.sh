@@ -2,12 +2,12 @@
 set -eu
 
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-lfrc=$repo/home/.config/lf/lfrc
-preview=$repo/home/.config/lf/preview
-archive=$repo/home/.local/bin/lf-archive
-detach=$repo/home/.local/bin/lf-detach
-show_items=$repo/home/.local/bin/lf-show-items
-portal=$repo/home/.config/xdg-desktop-portal/niri-portals.conf
+lfrc=$repo/root/home/.config/lf/lfrc
+preview=$repo/root/home/.config/lf/preview
+archive=$repo/root/home/.local/bin/lf-archive
+detach=$repo/root/home/.local/bin/lf-detach
+show_items=$repo/root/home/.local/bin/lf-show-items
+portal=$repo/root/home/.config/xdg-desktop-portal/niri-portals.conf
 
 fail() {
 	printf 'not ok - %s\n' "$1" >&2
@@ -24,7 +24,7 @@ grep -Fx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$portal" >/d
 if grep -Eiq 'river|wlr' "$portal"; then
 	fail 'Niri portal config contains stale River or wlroots backends'
 fi
-[ ! -e "$repo/home/.config/xdg-desktop-portal/river-portals.conf" ] ||
+[ ! -e "$repo/root/home/.config/xdg-desktop-portal/river-portals.conf" ] ||
 	fail 'stale River portal selector remains'
 sh -n "$preview"
 sh -n "$archive"

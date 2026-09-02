@@ -3,5 +3,5 @@
 set -euo pipefail
 sudo xbps-install -Syu
 script=$(readlink -f "$0")
-repo=$(cd "$(dirname "$script")/../../.." && pwd)
+repo=$(cd "$(dirname "$script")/../../../.." && pwd)
 sh "$repo/90-helium.sh"

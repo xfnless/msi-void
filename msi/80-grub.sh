@@ -14,17 +14,17 @@
 # 不重装 grubx64.efi（你系统里已经有了）。
 #
 
-dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 # --- GRUB 配置：隐藏菜单、默认第一项 ---
 # 文件说明见同目录 grub/default
 sudo cp -n /etc/default/grub /etc/default/grub.bak
-sudo install -m 644 "$dir/etc/default/grub" /etc/default/grub
+sudo install -m 644 "$repo/root/etc/default/grub.msi" /etc/default/grub
 
 # --- 菜单项：Windows 写在 Void 内核前面 ---
 # 09_windows 文件名里的 09 比 10_linux 小，所以生成菜单时 Win 在上、Void 在下
 # 内容说明见 grub/09_windows
-sudo install -m 755 "$dir/etc/grub.d/09_windows" /etc/grub.d/09_windows
+sudo install -m 755 "$repo/root/etc/grub.d/09_windows" /etc/grub.d/09_windows
 
 # 根据上面两份配置，重写 /boot/grub/grub.cfg
 sudo update-grub

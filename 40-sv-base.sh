@@ -5,6 +5,7 @@ set -eu
 sudo ln -sfn /etc/sv/chronyd /var/service/chronyd
 sudo ln -sfn /etc/sv/dbus /var/service/dbus
 sudo ln -sfn /etc/sv/seatd /var/service/seatd
+sudo ln -sfn /etc/sv/bluetoothd /var/service/bluetoothd
 sudo usermod -aG _seatd "$USER"
 
 sudo rm -f \

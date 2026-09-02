@@ -13,17 +13,11 @@ sh 70-link-apps.sh
 sh 90-helium.sh
 
 # MSI
-sh msi/16-ignore-unused.sh
 sh msi/20-pkg-hardware.sh
-sh msi/40-host-services.sh
-sh msi/70-link-host.sh
 sh msi/80-grub.sh
 sh msi/85-power.sh
 
 # ASUS
-sh asus/16-ignore-unused.sh
 sh asus/20-pkg-hardware.sh
-sh asus/40-host-services.sh
-sh asus/70-link-host.sh
 sh asus/80-grub.sh
 sh asus/85-power.sh

@@ -2,7 +2,7 @@
 # Link shell, input method and the common Niri configuration.
 set -eu
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-h=$dir/home
+h=$dir/root/home
 
 mkdir -p "$HOME/.config/fcitx5" "$HOME/.config/pipewire/pipewire.conf.d"
 ln -sfn /usr/share/examples/wireplumber/10-wireplumber.conf \

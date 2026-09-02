@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-status=$repo/home/.config/vis/my/status.lua
+status=$repo/root/home/.config/vis/my/status.lua
 
 fail() {
 	printf 'not ok - %s\n' "$1" >&2

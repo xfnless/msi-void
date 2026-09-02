@@ -5,10 +5,10 @@
 #   不把 Windows 写进 GRUB 菜单。
 #
 
-dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 sudo cp -n /etc/default/grub /etc/default/grub.bak
-sudo install -m 644 "$dir/etc/default/grub" /etc/default/grub
+sudo install -m 644 "$repo/root/etc/default/grub.asus" /etc/default/grub
 
 # 本机不用 GRUB 里的 Windows 项（进 Win 走 ASUS EFI 菜单）。
 sudo rm -f /etc/grub.d/09_windows
