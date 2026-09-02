@@ -1,16 +1,13 @@
-# Reuse the normal LF setup; only Enter is specialized for portal selection.
+# Reuse the normal LF setup, but make LF's open action submit files to the
+# portal.  LF itself still handles directories by entering them first.
 source ~/.config/lf/lfrc
 
-cmd xdg-accept-file ${{
+cmd open ${{
 	set -f
 	[ -n "${LF_XDG_OUT:-}" ] || exit 1
-	if [ -d "$f" ]; then
-		escaped=$(printf '%s' "$f" | sed 's/\\/\\\\/g;s/"/\\"/g')
-		lf -remote "send $id cd \"$escaped\""
-		exit 0
-	fi
+	[ -f "$f" ] || [ -L "$f" ] || exit 1
 	printf '%s\n' $fx >"$LF_XDG_OUT"
 	lf -remote "send $id quit"
 }}
 
-map <enter> xdg-accept-file
+map <enter> open

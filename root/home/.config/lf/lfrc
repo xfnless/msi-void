@@ -68,7 +68,7 @@ cmd copy_path ${{
 	set -f
 	printf '%s\n' $fx | wl-copy
 }}
-map yp copy_path
+map gp copy_path
 
 cmd copy_name ${{
 	set -f
@@ -76,9 +76,7 @@ cmd copy_name ${{
 		basename -- "$path"
 	done | wl-copy
 }}
-map y
-map yc copy
-map yn copy_name
+map gn copy_name
 
 cmd dir_size %{{
 	set -f
