@@ -1,6 +1,7 @@
 *.swp
 *~
 .DS_Store
+.worktrees/
 
 # Local state and private material never belong in the public config tree.
 Documents/
