@@ -6,6 +6,7 @@ sh 15-xbps-repos.sh
 sh 20-pkg-base.sh
 sh 30-keyd.sh
 sh 40-sv-base.sh
+sh 45-mihomo.sh
 sh 50-link-home.sh
 sh 60-pkg-apps.sh
 sh 65-vis.sh

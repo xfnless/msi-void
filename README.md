@@ -10,3 +10,12 @@ One small Niri terminal desktop, shared by two laptops.
 Follow the common commands in `flow.txt`, then run only the block for the machine being installed. The scripts are literal on purpose: there is no host detection, generator or overlay system.
 
 Personal documents, accounts, histories, caches and credentials stay outside this repository.
+
+## Mihomo
+
+`sh 45-mihomo.sh` installs the existing Mihomo binary as a root-run runit
+service. On its first run it creates the private
+`/etc/mihomo/config.yaml` without enabling the service. Replace
+`MARZBAN_SUBSCRIPTION_URL` using `sudoedit /etc/mihomo/config.yaml`, then run
+`sh 45-mihomo.sh` again. The second run validates the configuration before
+enabling `/var/service/mihomo`; later runs preserve the private configuration.

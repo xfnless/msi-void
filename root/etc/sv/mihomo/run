@@ -1,0 +1,4 @@
+#!/bin/sh
+exec /usr/local/bin/mihomo \
+	-d /var/lib/mihomo \
+	-f /etc/mihomo/config.yaml 2>&1
