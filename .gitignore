@@ -8,6 +8,7 @@ Documents/
 **/.cache/
 **/.bash_history
 **/.lesshst
+**/.config/htop/htop_history
 **/.local/share/lf/history
 **/accounts.json
 **/pppuser.csv
