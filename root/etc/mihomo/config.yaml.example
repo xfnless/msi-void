@@ -1,0 +1,57 @@
+mixed-port: 7890
+external-controller: 127.0.0.1:9090
+allow-lan: false
+mode: rule
+log-level: warning
+ipv6: false
+
+profile:
+  store-selected: true
+
+tun:
+  enable: true
+  stack: system
+  dns-hijack: [any:53]
+  auto-route: true
+  auto-detect-interface: true
+
+dns:
+  enable: true
+  enhanced-mode: fake-ip
+  nameserver:
+    - 223.5.5.5
+    - 1.1.1.1
+
+proxy-providers:
+  marzban:
+    type: http
+    url: MARZBAN_SUBSCRIPTION_URL
+    path: ./providers/marzban.yaml
+    interval: 21600
+    header:
+      User-Agent: [mihomo]
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 600
+
+proxy-groups:
+  - name: 香港
+    type: select
+    use: [marzban]
+    filter: '(?i)(香港|HK|Hong[ -]?Kong)'
+  - name: 国内
+    type: select
+    use: [marzban]
+    filter: '(?i)(国内|CN|China)'
+  - name: GLOBAL
+    type: select
+    proxies: [香港, 国内, DIRECT]
+    use: [marzban]
+
+rules:
+  - GEOSITE,private,DIRECT
+  - GEOIP,private,DIRECT,no-resolve
+  - GEOSITE,cn,国内
+  - GEOIP,cn,国内,no-resolve
+  - MATCH,香港
