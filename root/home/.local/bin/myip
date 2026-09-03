@@ -1,0 +1,9 @@
+#!/bin/sh
+set -eu
+
+if ! ip=$(curl -fsS http://myip.ipip.net); then
+	printf '%s\n' '无法获取公网 IP，请检查网络。' >&2
+	exit 1
+fi
+
+printf '%s\n' "$ip"
