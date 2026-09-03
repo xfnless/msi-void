@@ -40,12 +40,19 @@ cat >"$tmp/bin/mihomo" <<'EOF'
 #!/bin/sh
 printf '%s\n' 'configuration file test is successful'
 EOF
-chmod +x "$tmp/bin/curl" "$tmp/bin/sv" "$tmp/bin/mihomo"
+cat >"$tmp/bin/sudo" <<'EOF'
+#!/bin/sh
+printf 'SUDO|%s\n' "$*" >>"$MIHOMO_TEST_LOG"
+exec "$@"
+EOF
+chmod +x "$tmp/bin/curl" "$tmp/bin/sv" "$tmp/bin/mihomo" "$tmp/bin/sudo"
+printf '%s\n' 'service log line' >"$tmp/current"
 
 run_ctl() {
 	: >"$tmp/log"
 	MIHOMO_TEST_LOG=$tmp/log CURL=$tmp/bin/curl SV=$tmp/bin/sv \
-		MIHOMO=$tmp/bin/mihomo MIHOMO_LOG=$tmp/current "$script" "$@"
+		SUDO=$tmp/bin/sudo MIHOMO=$tmp/bin/mihomo MIHOMO_LOG=$tmp/current \
+		"$script" "$@"
 }
 
 [ -x "$script" ] || fail 'mihomoctl does not exist'
@@ -78,5 +85,12 @@ if run_ctl use rule missing >"$tmp/out" 2>"$tmp/err"; then
 	fail 'unknown rule policy is accepted'
 fi
 grep -Fq 'mihomoctl use rule split' "$tmp/err" || fail 'usage does not show accepted rule policy'
+
+run_ctl check >/dev/null
+grep -Fq "SUDO|$tmp/bin/mihomo -t -d /var/lib/mihomo -f /etc/mihomo/config.yaml" "$tmp/log" || fail 'private configuration check does not elevate'
+
+run_ctl log >"$tmp/out"
+grep -Fq 'service log line' "$tmp/out" || fail 'service log is not displayed'
+grep -Fq "SUDO|tail -n 100 $tmp/current" "$tmp/log" || fail 'private service log does not elevate'
 
 printf 'ok - mihomoctl maps clear modes and safe node names onto the native API\n'

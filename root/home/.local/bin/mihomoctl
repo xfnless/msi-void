@@ -5,6 +5,7 @@ set -eu
 API=${MIHOMO_API:-http://127.0.0.1:9090}
 CURL=${CURL:-curl}
 SV=${SV:-sv}
+SUDO=${SUDO:-sudo}
 MIHOMO=${MIHOMO:-/usr/local/bin/mihomo}
 MIHOMO_LOG=${MIHOMO_LOG:-/var/log/sv/mihomo/current}
 
@@ -115,11 +116,11 @@ update)
 	;;
 check)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
-	exec "$MIHOMO" -t -d /var/lib/mihomo -f /etc/mihomo/config.yaml
+	exec "$SUDO" "$MIHOMO" -t -d /var/lib/mihomo -f /etc/mihomo/config.yaml
 	;;
 log)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
-	exec tail -n 100 "$MIHOMO_LOG"
+	exec "$SUDO" tail -n 100 "$MIHOMO_LOG"
 	;;
 *) usage; exit 2 ;;
 esac
