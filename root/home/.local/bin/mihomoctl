@@ -1,0 +1,125 @@
+#!/bin/sh
+# Thin command-line interface to Mihomo's native controller API.
+set -eu
+
+API=${MIHOMO_API:-http://127.0.0.1:9090}
+CURL=${CURL:-curl}
+SV=${SV:-sv}
+MIHOMO=${MIHOMO:-/usr/local/bin/mihomo}
+MIHOMO_LOG=${MIHOMO_LOG:-/var/log/sv/mihomo/current}
+
+usage() {
+	cat >&2 <<'EOF'
+usage:
+  mihomoctl status
+  mihomoctl use rule split
+  mihomoctl use global hk|cn|EXACT_NODE_NAME
+  mihomoctl use direct
+  mihomoctl nodes
+  mihomoctl update
+  mihomoctl check
+  mihomoctl log
+EOF
+}
+
+api_get() {
+	"$CURL" --fail --silent --show-error --connect-timeout 3 "$API$1"
+}
+
+api_write() {
+	method=$1 path=$2 data=${3:-}
+	if [ -n "$data" ]; then
+		"$CURL" --fail --silent --show-error --connect-timeout 3 \
+			--request "$method" --header 'Content-Type: application/json' \
+			--data "$data" "$API$path"
+	else
+		"$CURL" --fail --silent --show-error --connect-timeout 3 \
+			--request "$method" "$API$path"
+	fi
+}
+
+json_name() {
+	python3 -c 'import json,sys; print(json.dumps({"name": sys.argv[1]}, ensure_ascii=False))' "$1"
+}
+
+set_mode() {
+	api_write PATCH /configs "{\"mode\":\"$1\"}" >/dev/null
+}
+
+select_global() {
+	name=$1
+	current=$(api_get /proxies/GLOBAL)
+	if ! printf '%s' "$current" | python3 -c '
+import json, sys
+name = sys.argv[1]
+data = json.load(sys.stdin)
+raise SystemExit(0 if name in data.get("all", []) else 1)
+' "$name"; then
+		printf '未知节点：%s\n' "$name" >&2
+		exit 1
+	fi
+	api_write PUT /proxies/GLOBAL "$(json_name "$name")" >/dev/null
+}
+
+show_group() {
+	label=$1 path=$2
+	value=$(api_get "$path" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("now", "-"))')
+	printf '%-8s %s\n' "$label:" "$value"
+}
+
+case ${1:-} in
+status)
+	[ "$#" -eq 1 ] || { usage; exit 2; }
+	"$SV" status mihomo
+	mode=$(api_get /configs | python3 -c 'import json,sys; print(json.load(sys.stdin).get("mode", "-"))')
+	printf '%-8s %s\n' 'mode:' "$mode"
+	show_group 'global' /proxies/GLOBAL
+	show_group '香港' /proxies/%E9%A6%99%E6%B8%AF
+	show_group '国内' /proxies/%E5%9B%BD%E5%86%85
+	;;
+use)
+	case ${2:-} in
+	rule)
+		[ "$#" -eq 3 ] && [ "$3" = split ] || { usage; exit 2; }
+		set_mode rule
+		;;
+	global)
+		[ "$#" -eq 3 ] || { usage; exit 2; }
+		case $3 in
+		hk) node=香港 ;;
+		cn) node=国内 ;;
+		*) node=$3 ;;
+		esac
+		select_global "$node"
+		set_mode global
+		;;
+	direct)
+		[ "$#" -eq 2 ] || { usage; exit 2; }
+		set_mode direct
+		;;
+	*) usage; exit 2 ;;
+	esac
+	;;
+nodes)
+	[ "$#" -eq 1 ] || { usage; exit 2; }
+	api_get /providers/proxies/marzban | python3 -c '
+import json, sys
+for proxy in json.load(sys.stdin).get("proxies", []):
+    print(proxy.get("name", ""))
+'
+	;;
+update)
+	[ "$#" -eq 1 ] || { usage; exit 2; }
+	api_write PUT /providers/proxies/marzban >/dev/null
+	printf '%s\n' '订阅已更新。'
+	;;
+check)
+	[ "$#" -eq 1 ] || { usage; exit 2; }
+	exec "$MIHOMO" -t -d /var/lib/mihomo -f /etc/mihomo/config.yaml
+	;;
+log)
+	[ "$#" -eq 1 ] || { usage; exit 2; }
+	exec tail -n 100 "$MIHOMO_LOG"
+	;;
+*) usage; exit 2 ;;
+esac

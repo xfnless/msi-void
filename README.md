@@ -19,3 +19,22 @@ service. On its first run it creates the private
 `MARZBAN_SUBSCRIPTION_URL` using `sudoedit /etc/mihomo/config.yaml`, then run
 `sh 45-mihomo.sh` again. The second run validates the configuration before
 enabling `/var/service/mihomo`; later runs preserve the private configuration.
+
+The controller is deliberately a thin wrapper over Mihomo's native API:
+
+```sh
+mihomoctl status
+mihomoctl use rule split
+mihomoctl use global hk
+mihomoctl use global cn
+mihomoctl use global 'exact node name'
+mihomoctl use direct
+mihomoctl nodes
+mihomoctl update
+mihomoctl check
+mihomoctl log
+```
+
+`use` changes Mihomo's native mode and policy-group selection. Process control
+remains runit's job: use `sudo sv up mihomo`, `sudo sv down mihomo`, or
+`sudo sv restart mihomo`.
