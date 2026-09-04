@@ -22,5 +22,6 @@ has 'ssh() {'
 has '通过工作跳板机连接？[Y/n]'
 has 'command ssh -J work-bastion'
 has 'sshw() {'
+has '[[ ${1:-} == work-bastion ]]'
 
 printf 'ok - interactive SSH offers the work bastion and sshw forces it\n'

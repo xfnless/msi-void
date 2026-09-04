@@ -57,6 +57,10 @@ _ssh_via_work_bastion() {
 }
 
 ssh() {
+	if [[ ${1:-} == work-bastion ]]; then
+		command ssh "$@"
+		return
+	fi
 	if [[ -t 0 && -t 1 ]]; then
 		local answer
 		read -r -p '通过工作跳板机连接？[Y/n] ' answer
