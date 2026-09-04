@@ -30,15 +30,31 @@ proxies:
   - name: 香港节点
     type: vless
     server: REPLACE_HK_SERVER
-    port: 8443
-    uuid: 00000000-0000-0000-0000-000000000000
+    port: 443
+    uuid: REPLACE_HK_UUID
     network: tcp
+    tls: true
+    udp: true
+    servername: www.nvidia.com
+    flow: xtls-rprx-vision
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: REPLACE_PUBLIC_KEY
+      short-id: REPLACE_SHORT_ID
   - name: 国内节点
     type: vless
     server: REPLACE_CN_RELAY_SERVER
     port: 9443
-    uuid: 00000000-0000-0000-0000-000000000000
+    uuid: REPLACE_CN_UUID
     network: tcp
+    tls: true
+    udp: true
+    servername: www.nvidia.com
+    flow: xtls-rprx-vision
+    client-fingerprint: chrome
+    reality-opts:
+      public-key: REPLACE_PUBLIC_KEY
+      short-id: REPLACE_SHORT_ID
 
 proxy-groups:
   - name: 香港

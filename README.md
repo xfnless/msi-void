@@ -11,6 +11,46 @@ Follow the common commands in `flow.txt`, then run only the block for the machin
 
 Personal documents, accounts, histories, caches and credentials stay outside this repository.
 
+## Standalone Xray servers
+
+`servers/xray/install.sh` installs or reconfigures one transparent Xray role.
+Copy the whole `servers/xray/` directory to the server alongside the official
+XTLS installer and a separately verified `Xray-linux-64.zip`, then run one of:
+
+```sh
+sudo sh servers/xray/install.sh exit
+sudo sh servers/xray/install.sh hk-relay 183.56.224.54
+```
+
+Use `exit` for any standalone overseas or domestic exit. Use `hk-relay` only
+on the Hong Kong server that owns both its Reality exit on TCP 443 and the
+fixed TCP 9443 relay to the domestic Reality listener. Build and test in this
+order: HK `exit`, CN `exit`, then rerun HK as `hk-relay`. This keeps every
+failure attributable to one layer.
+
+The script uses `/tmp/install-release.sh` and
+`/tmp/Xray-linux-64.zip` only when Xray is absent. It generates credentials
+with native Xray/OpenSSL commands, validates a temporary `.json` file, keeps
+the first old configuration as `config.json.before-standalone`, and restarts
+only after validation. Server secrets stay in
+`/usr/local/etc/xray/server.env`; the client-only export is
+`/usr/local/etc/xray/client.env`. Both are mode 600 and must not be committed.
+
+Native server maintenance remains visible:
+
+```sh
+sudo /usr/local/bin/xray run -test -config /usr/local/etc/xray/config.json
+systemctl status xray --no-pager
+sudo systemctl restart xray
+sudo journalctl -u xray -n 50 --no-pager
+sudo ss -lntp | grep -E ':(443|9443)\b'
+```
+
+Keep HK public TCP 22, 443 and 9443 only. Restrict CN TCP 443 to the HK
+address `/32`. Keep the old CN Marzban container stopped-but-present until a
+reboot and both exit tests pass; rollback means stopping standalone Xray and
+starting that retained container.
+
 ## Mihomo
 
 `sh 45-mihomo.sh` installs the existing Mihomo binary as a root-run runit
@@ -47,8 +87,8 @@ In split mode, `GEOSITE,category-ads-all` provides lightweight blocking for
 the three work applications. `mihomoctl adblock off` disables that rule until
 Mihomo restarts; `mihomoctl adblock on` enables it again.
 
-Interactive `ssh` asks whether to connect through an OpenSSH jump host;
-`sshw` always uses it. Configure the single shared jump host locally without
+Interactive `ssh` and `scp` ask whether to use an OpenSSH jump host; `sshw`
+and `scpw` always use it. Configure the single shared jump host locally without
 putting private addresses or keys in this repository:
 
 ```sshconfig
@@ -59,8 +99,9 @@ Host work-bastion
     ProxyJump none
 ```
 
-Choosing `n` in the prompt connects directly. Git and other programs that
-invoke SSH non-interactively are not wrapped.
+Choosing `n` in either prompt connects directly. A destination of
+`work-bastion` itself is always direct. Git and other programs that invoke SSH
+non-interactively are not wrapped.
 
 `use` changes Mihomo's native mode and policy-group selection. Process control
 remains runit's job: use `sudo sv up mihomo`, `sudo sv down mihomo`, or
