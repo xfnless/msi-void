@@ -1,0 +1,42 @@
+{
+  "log": {"loglevel": "warning"},
+  "routing": {
+    "rules": [
+      {"type": "field", "ip": ["geoip:private"], "outboundTag": "BLOCK"}
+    ]
+  },
+  "inbounds": [
+    {
+      "tag": "VLESS-Reality",
+      "listen": "0.0.0.0",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [
+          {"id": "__UUID__", "flow": "xtls-rprx-vision", "email": "xfn"}
+        ],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "raw",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "target": "www.nvidia.com:443",
+          "xver": 0,
+          "serverNames": ["www.nvidia.com"],
+          "privateKey": "__PRIVATE_KEY__",
+          "shortIds": ["__SHORT_ID__"]
+        }
+      },
+      "sniffing": {
+        "enabled": true,
+        "destOverride": ["http", "tls", "quic"]
+      }
+    }
+  ],
+  "outbounds": [
+    {"protocol": "freedom", "tag": "DIRECT"},
+    {"protocol": "blackhole", "tag": "BLOCK"}
+  ]
+}
