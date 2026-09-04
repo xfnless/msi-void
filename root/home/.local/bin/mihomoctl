@@ -18,6 +18,7 @@ usage:
   mihomoctl use direct
   mihomoctl nodes
   mihomoctl update
+  mihomoctl adblock on|off|status
   mihomoctl check
   mihomoctl log
 EOF
@@ -68,6 +69,19 @@ show_group() {
 	printf '%-8s %s\n' "$label:" "$value"
 }
 
+ad_rule() {
+	api_get /rules | python3 -c '
+import json, sys
+for rule in json.load(sys.stdin).get("rules", []):
+    if "category-ads-all" in rule.get("payload", "") and rule.get("proxy") == "REJECT":
+        disabled = rule.get("extra", {}).get("disabled", False)
+        print(rule["index"], str(disabled).lower())
+        break
+else:
+    raise SystemExit("ad blocking rule not found")
+'
+}
+
 case ${1:-} in
 status)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
@@ -113,6 +127,20 @@ update)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
 	api_write PUT /providers/proxies/marzban >/dev/null
 	printf '%s\n' '订阅已更新。'
+	;;
+adblock)
+	[ "$#" -eq 2 ] || { usage; exit 2; }
+	action=$2
+	set -- $(ad_rule)
+	index=$1 disabled=$2
+	case $action in
+	on) api_write PATCH /rules/disable "{\"$index\":false}" >/dev/null ;;
+	off) api_write PATCH /rules/disable "{\"$index\":true}" >/dev/null ;;
+	status)
+		if [ "$disabled" = true ]; then printf '%s\n' off; else printf '%s\n' on; fi
+		;;
+	*) usage; exit 2 ;;
+	esac
 	;;
 check)
 	[ "$#" -eq 1 ] || { usage; exit 2; }

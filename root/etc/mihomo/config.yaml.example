@@ -52,6 +52,7 @@ proxy-groups:
     use: [marzban]
 
 rules:
+  - AND,((OR,((PROCESS-NAME,firefox),(PROCESS-NAME,chrome),(PROCESS-NAME,Telegram))),(GEOSITE,category-ads-all)),REJECT
   - SUB-RULE,(PROCESS-NAME,firefox),work-app
   - SUB-RULE,(PROCESS-NAME,chrome),work-app
   - SUB-RULE,(PROCESS-NAME,Telegram),work-app

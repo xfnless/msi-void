@@ -31,6 +31,9 @@ mihomoctl use global 'exact node name'
 mihomoctl use direct
 mihomoctl nodes
 mihomoctl update
+mihomoctl adblock on
+mihomoctl adblock off
+mihomoctl adblock status
 mihomoctl check
 mihomoctl log
 ```
@@ -40,6 +43,9 @@ Telegram through the split rules (China through `国内`, everything else
 through `香港`). Other applications fall through to `DIRECT`. Use
 `mihomoctl use global cn` or `mihomoctl use global hk` temporarily when the
 split mode is unsuitable, then restore it with `mihomoctl use rule split`.
+In split mode, `GEOSITE,category-ads-all` provides lightweight blocking for
+the three work applications. `mihomoctl adblock off` disables that rule until
+Mihomo restarts; `mihomoctl adblock on` enables it again.
 
 Interactive `ssh` asks whether to connect through an OpenSSH jump host;
 `sshw` always uses it. Configure the single shared jump host locally without

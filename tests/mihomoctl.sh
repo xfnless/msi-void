@@ -26,6 +26,7 @@ done
 printf '%s|%s|%s\n' "$method" "$url" "$body" >>"$MIHOMO_TEST_LOG"
 case $url in
 */configs) printf '%s\n' '{"mode":"rule"}' ;;
+*/rules) printf '%s\n' '{"rules":[{"index":0,"type":"AND","payload":"((OR,work-apps),(GEOSITE,category-ads-all))","proxy":"REJECT","extra":{"disabled":false}}]}' ;;
 */proxies/GLOBAL) printf '%s\n' '{"now":"香港","all":["香港","国内","DIRECT","custom node"]}' ;;
 */proxies/*) printf '%s\n' '{"now":"node one","all":["node one"]}' ;;
 */providers/proxies/marzban) printf '%s\n' '{"name":"marzban","proxies":[{"name":"香港 node"},{"name":"国内 node"}]}' ;;
@@ -83,6 +84,15 @@ grep -Fq '/configs|{"mode":"direct"}' "$tmp/log" || fail 'direct does not use na
 
 run_ctl update
 grep -Fq 'PUT|http://127.0.0.1:9090/providers/proxies/marzban|' "$tmp/log" || fail 'provider update does not use native provider API'
+
+run_ctl adblock off
+grep -Fq 'PATCH|http://127.0.0.1:9090/rules/disable|{"0":true}' "$tmp/log" || fail 'adblock off does not temporarily disable the native rule'
+
+run_ctl adblock on
+grep -Fq 'PATCH|http://127.0.0.1:9090/rules/disable|{"0":false}' "$tmp/log" || fail 'adblock on does not enable the native rule'
+
+run_ctl adblock status >"$tmp/out"
+grep -Fq 'on' "$tmp/out" || fail 'adblock status does not report the native rule state'
 
 if run_ctl use rule missing >"$tmp/out" 2>"$tmp/err"; then
 	fail 'unknown rule policy is accepted'

@@ -21,6 +21,7 @@ has 'User-Agent: [mihomo]'
 has 'name: 香港'
 has 'name: 国内'
 has 'name: GLOBAL'
+has 'AND,((OR,((PROCESS-NAME,firefox),(PROCESS-NAME,chrome),(PROCESS-NAME,Telegram))),(GEOSITE,category-ads-all)),REJECT'
 has 'SUB-RULE,(PROCESS-NAME,firefox),work-app'
 has 'SUB-RULE,(PROCESS-NAME,chrome),work-app'
 has 'SUB-RULE,(PROCESS-NAME,Telegram),work-app'
@@ -29,6 +30,10 @@ has 'work-app:'
 has 'GEOSITE,cn,国内'
 has 'GEOIP,cn,国内,no-resolve'
 has 'MATCH,香港'
+
+ad_line=$(grep -n 'GEOSITE,category-ads-all' "$config" | cut -d: -f1)
+firefox_line=$(grep -n 'SUB-RULE,(PROCESS-NAME,firefox)' "$config" | cut -d: -f1)
+[ "$ad_line" -lt "$firefox_line" ] || fail 'ad blocking must run before work-app split routing'
 
 if grep -Fq 'uuid:' "$config"; then
 	fail 'public example contains a node UUID'
