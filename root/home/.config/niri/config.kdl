@@ -96,7 +96,9 @@ spawn-at-startup "mouseless"
 binds {
 Mod+escape repeat=false { power-off-monitors; }
 Mod+a repeat=false { spawn "alacritty"; }
-Mod+c repeat=false { spawn "firefox" "--new-window"; }
+Mod+c repeat=false { spawn "helium" "--new-window"; }
+Mod+shift+c repeat=false { spawn "firefox" "--new-window"; }
+Mod+ctrl+c repeat=false { spawn "google-chrome-stable" "--new-window"; }
 Mod+z repeat=false { spawn "Telegram"; }
 Mod+v repeat=false { toggle-overview; }
 Mod+p repeat=false { spawn-sh "grim - | swappy -f -"; }

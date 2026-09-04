@@ -3,6 +3,7 @@ void-installer
 # void-installer 完成后：重启，进入新安装的系统。
 sudo sh 10-set-hosts.sh
 sh 15-xbps-repos.sh
+sh 16-sudo.sh
 sh 20-pkg-base.sh
 sh 30-keyd.sh
 sh 40-sv-base.sh
