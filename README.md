@@ -51,6 +51,39 @@ address `/32`. Keep the old CN Marzban container stopped-but-present until a
 reboot and both exit tests pass; rollback means stopping standalone Xray and
 starting that retained container.
 
+### Mental model
+
+Think of Mihomo as the dispatcher in the local station. TUN brings it selected
+application traffic; `rule split` reads the destination and sends Chinese
+sites to the `国内` platform, other work-app sites to `香港`, and leaves other
+processes on `DIRECT`. `global` temporarily sends everything to one selected
+platform. The stored `global:` choice shown by `mihomoctl status` is inert
+while the active mode is `rule`.
+
+An Xray Reality listener is a guarded remote door. The UUID, server public
+parameter and short ID let the client prove it belongs there; the server keeps
+the private key. After that handshake, VLESS carries the requested TCP stream
+and the remote Xray opens the real Internet connection, so websites see that
+server's exit address. `www.nvidia.com` is the believable TLS target/SNI, not
+an HTTP reverse proxy and not where authenticated user traffic is sent.
+
+HK TCP 9443 is only a sealed pipe. `dokodemo-door` accepts raw TCP and forwards
+it to CN TCP 443 without understanding or decrypting the inner CN Reality
+session. The CN UUID and Reality handshake therefore remain end-to-end between
+local Mihomo and the CN Xray. The two paths are:
+
+```text
+HK: local Mihomo -> HK:443 Reality -> Internet
+CN: local Mihomo -> HK:9443 raw relay -> CN:443 Reality -> Internet
+```
+
+For another overseas-only server, copy the verified archive, official
+installer and this directory, then run only `sudo sh install.sh exit`; add its
+client fields to the private Mihomo configuration. For a new HK+CN pair: test
+HK `exit`, test CN `exit` directly while its firewall temporarily allows the
+client IP, restrict CN 443 to HK, change HK to `hk-relay`, point the Mihomo CN
+entry at HK 9443, and finally restore `mihomoctl use rule split`.
+
 ## Mihomo
 
 `sh 45-mihomo.sh` installs the existing Mihomo binary as a root-run runit
