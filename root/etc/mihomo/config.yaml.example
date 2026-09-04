@@ -4,6 +4,7 @@ allow-lan: false
 mode: rule
 log-level: warning
 ipv6: false
+find-process-mode: always
 
 profile:
   store-selected: true
@@ -18,9 +19,10 @@ tun:
 dns:
   enable: true
   enhanced-mode: fake-ip
-  nameserver:
-    - 223.5.5.5
+  default-nameserver:
     - 1.1.1.1
+  nameserver:
+    - https://1.1.1.1/dns-query
 
 proxy-providers:
   marzban:
@@ -50,8 +52,15 @@ proxy-groups:
     use: [marzban]
 
 rules:
-  - GEOSITE,private,DIRECT
-  - GEOIP,private,DIRECT,no-resolve
-  - GEOSITE,cn,国内
-  - GEOIP,cn,国内,no-resolve
-  - MATCH,香港
+  - SUB-RULE,(PROCESS-NAME,firefox),work-app
+  - SUB-RULE,(PROCESS-NAME,chrome),work-app
+  - SUB-RULE,(PROCESS-NAME,Telegram),work-app
+  - MATCH,DIRECT
+
+sub-rules:
+  work-app:
+    - GEOSITE,private,DIRECT
+    - GEOIP,private,DIRECT,no-resolve
+    - GEOSITE,cn,国内
+    - GEOIP,cn,国内,no-resolve
+    - MATCH,香港

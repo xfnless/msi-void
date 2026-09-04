@@ -35,6 +35,27 @@ mihomoctl check
 mihomoctl log
 ```
 
+In the normal `rule split` mode, Mihomo's TUN sends Firefox, Google Chrome and
+Telegram through the split rules (China through `国内`, everything else
+through `香港`). Other applications fall through to `DIRECT`. Use
+`mihomoctl use global cn` or `mihomoctl use global hk` temporarily when the
+split mode is unsuitable, then restore it with `mihomoctl use rule split`.
+
+Interactive `ssh` asks whether to connect through an OpenSSH jump host;
+`sshw` always uses it. Configure the single shared jump host locally without
+putting private addresses or keys in this repository:
+
+```sshconfig
+Host work-bastion
+    HostName <fixed-work-egress-ip>
+    User <user>
+    IdentityFile ~/.ssh/id_ed25519
+    ProxyJump none
+```
+
+Choosing `n` in the prompt connects directly. Git and other programs that
+invoke SSH non-interactively are not wrapped.
+
 `use` changes Mihomo's native mode and policy-group selection. Process control
 remains runit's job: use `sudo sv up mihomo`, `sudo sv down mihomo`, or
 `sudo sv restart mihomo`.
