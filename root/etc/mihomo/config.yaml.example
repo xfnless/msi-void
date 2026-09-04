@@ -24,32 +24,32 @@ dns:
   nameserver:
     - https://1.1.1.1/dns-query
 
-proxy-providers:
-  marzban:
-    type: http
-    url: MARZBAN_SUBSCRIPTION_URL
-    path: ./providers/marzban.yaml
-    interval: 21600
-    header:
-      User-Agent: [mihomo]
-    health-check:
-      enable: true
-      url: https://www.gstatic.com/generate_204
-      interval: 600
+# REPLACE_STATIC_NODE_VALUES: paste the two complete Mihomo proxy mappings here,
+# then remove this marker before running 45-mihomo.sh again.
+proxies:
+  - name: 香港节点
+    type: vless
+    server: REPLACE_HK_SERVER
+    port: 8443
+    uuid: 00000000-0000-0000-0000-000000000000
+    network: tcp
+  - name: 国内节点
+    type: vless
+    server: REPLACE_CN_RELAY_SERVER
+    port: 9443
+    uuid: 00000000-0000-0000-0000-000000000000
+    network: tcp
 
 proxy-groups:
   - name: 香港
     type: select
-    use: [marzban]
-    filter: '(?i)(香港|8443|\bHK\b|Hong[ -]?Kong)'
+    proxies: [香港节点]
   - name: 国内
     type: select
-    use: [marzban]
-    filter: '(?i)(国内|9443|hk-gz|\bCN\b|China)'
+    proxies: [国内节点]
   - name: GLOBAL
     type: select
-    proxies: [香港, 国内, DIRECT]
-    use: [marzban]
+    proxies: [香港, 国内, DIRECT, 香港节点, 国内节点]
 
 rules:
   - AND,((OR,((PROCESS-NAME,firefox),(PROCESS-NAME,chrome),(PROCESS-NAME,Telegram))),(GEOSITE,category-ads-all)),REJECT

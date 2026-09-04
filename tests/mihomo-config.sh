@@ -15,9 +15,10 @@ has 'store-selected: true'
 has 'enable: true'
 has 'auto-route: true'
 has 'dns-hijack:'
-has 'marzban:'
-has 'url: MARZBAN_SUBSCRIPTION_URL'
-has 'User-Agent: [mihomo]'
+has 'proxies:'
+has 'name: 香港节点'
+has 'name: 国内节点'
+has 'REPLACE_STATIC_NODE_VALUES'
 has 'name: 香港'
 has 'name: 国内'
 has 'name: GLOBAL'
@@ -35,26 +36,8 @@ ad_line=$(grep -n 'GEOSITE,category-ads-all' "$config" | cut -d: -f1)
 firefox_line=$(grep -n 'SUB-RULE,(PROCESS-NAME,firefox)' "$config" | cut -d: -f1)
 [ "$ad_line" -lt "$firefox_line" ] || fail 'ad blocking must run before work-app split routing'
 
-if grep -Fq 'uuid:' "$config"; then
-	fail 'public example contains a node UUID'
+if grep -Fq 'proxy-providers:' "$config" || grep -Fq 'MARZBAN_SUBSCRIPTION_URL' "$config"; then
+	fail 'static template still depends on a subscription provider'
 fi
 
-domestic_filter=$(awk '
-/name: 国内/ { in_domestic = 1; next }
-in_domestic && /filter:/ {
-    sub(/^[^:]*:[[:space:]]*/, "")
-    gsub(/^\047|\047$/, "")
-    print
-    exit
-}
-' "$config")
-python3 - "$domestic_filter" <<'PY' || fail 'domestic filter does not classify the Marzban node names'
-import re
-import sys
-
-pattern = re.compile(sys.argv[1])
-assert pattern.search("9443 hk-gz 47.243.86.161 Active VLESS tcp")
-assert not pattern.search("8443 hk Active VLESS tcp")
-PY
-
-printf 'ok - Mihomo template has private subscription, split routing and safe controller defaults\n'
+printf 'ok - Mihomo template has private static nodes, split routing and safe controller defaults\n'

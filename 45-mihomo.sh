@@ -1,5 +1,5 @@
 #!/bin/sh
-# Install Mihomo and its boot service without storing private subscriptions here.
+# Install Mihomo and its boot service without storing private nodes here.
 set -eu
 
 dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -28,13 +28,13 @@ if ! sudo test -f /etc/mihomo/config.yaml; then
 	sudo install -m 600 "$template" /etc/mihomo/config.yaml
 	printf '%s\n' \
 		'已创建 /etc/mihomo/config.yaml。' \
-		'请执行 sudoedit /etc/mihomo/config.yaml，替换 MARZBAN_SUBSCRIPTION_URL，' \
+		'请执行 sudoedit /etc/mihomo/config.yaml，填入两个完整节点并删除 REPLACE_STATIC_NODE_VALUES 标记，' \
 		'然后重新运行 sh 45-mihomo.sh。'
 	exit 0
 fi
 
-if sudo grep -Fq 'MARZBAN_SUBSCRIPTION_URL' /etc/mihomo/config.yaml; then
-	printf '%s\n' '请先替换 /etc/mihomo/config.yaml 中的订阅地址。' >&2
+if sudo grep -Fq 'REPLACE_STATIC_NODE_VALUES' /etc/mihomo/config.yaml; then
+	printf '%s\n' '请先填入 /etc/mihomo/config.yaml 中的两个静态节点。' >&2
 	exit 1
 fi
 

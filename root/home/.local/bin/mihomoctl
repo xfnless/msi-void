@@ -69,6 +69,14 @@ show_group() {
 	printf '%-8s %s\n' "$label:" "$value"
 }
 
+list_group() {
+	api_get "$1" | python3 -c '
+import json, sys
+for name in json.load(sys.stdin).get("all", []):
+    print(name)
+'
+}
+
 ad_rule() {
 	api_get /rules | python3 -c '
 import json, sys
@@ -117,16 +125,12 @@ use)
 	;;
 nodes)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
-	api_get /providers/proxies/marzban | python3 -c '
-import json, sys
-for proxy in json.load(sys.stdin).get("proxies", []):
-    print(proxy.get("name", ""))
-'
+	list_group /proxies/%E9%A6%99%E6%B8%AF
+	list_group /proxies/%E5%9B%BD%E5%86%85
 	;;
 update)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
-	api_write PUT /providers/proxies/marzban >/dev/null
-	printf '%s\n' '订阅已更新。'
+	printf '%s\n' '静态节点无需更新；修改 /etc/mihomo/config.yaml 后执行 sudo sv restart mihomo。'
 	;;
 adblock)
 	[ "$#" -eq 2 ] || { usage; exit 2; }

@@ -17,7 +17,7 @@ has "$run" '-d /var/lib/mihomo'
 has "$run" '-f /etc/mihomo/config.yaml'
 has "$log_run" 'svlogd -tt /var/log/sv/mihomo'
 has "$installer" 'config.yaml.example'
-has "$installer" 'MARZBAN_SUBSCRIPTION_URL'
+has "$installer" 'REPLACE_STATIC_NODE_VALUES'
 has "$installer" 'mihomo -t'
 has "$installer" '/var/service/mihomo'
 has "$installer" 'install -m 600'
@@ -39,7 +39,7 @@ cat >"$tmp/bin/sudo" <<'EOF'
 printf '%s\n' "$*" >>"$MIHOMO_INSTALL_LOG"
 case "$*" in
 'test -f /etc/mihomo/config.yaml') exit 0 ;;
-'grep -Fq MARZBAN_SUBSCRIPTION_URL /etc/mihomo/config.yaml') exit 1 ;;
+'grep -Fq REPLACE_STATIC_NODE_VALUES /etc/mihomo/config.yaml') exit 1 ;;
 esac
 exit 0
 EOF

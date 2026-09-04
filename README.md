@@ -15,10 +15,10 @@ Personal documents, accounts, histories, caches and credentials stay outside thi
 
 `sh 45-mihomo.sh` installs the existing Mihomo binary as a root-run runit
 service. On its first run it creates the private
-`/etc/mihomo/config.yaml` without enabling the service. Replace
-`MARZBAN_SUBSCRIPTION_URL` using `sudoedit /etc/mihomo/config.yaml`, then run
-`sh 45-mihomo.sh` again. The second run validates the configuration before
-enabling `/var/service/mihomo`; later runs preserve the private configuration.
+`/etc/mihomo/config.yaml` without enabling the service. Paste the two complete
+static Mihomo proxy mappings, remove the `REPLACE_STATIC_NODE_VALUES` marker,
+then run `sh 45-mihomo.sh` again. The second run validates the configuration
+before enabling `/var/service/mihomo`; later runs preserve the private nodes.
 
 The controller is deliberately a thin wrapper over Mihomo's native API:
 
@@ -30,7 +30,7 @@ mihomoctl use global cn
 mihomoctl use global 'exact node name'
 mihomoctl use direct
 mihomoctl nodes
-mihomoctl update
+mihomoctl update  # explains how static nodes are updated
 mihomoctl adblock on
 mihomoctl adblock off
 mihomoctl adblock status

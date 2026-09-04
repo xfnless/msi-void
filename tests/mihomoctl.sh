@@ -28,8 +28,9 @@ case $url in
 */configs) printf '%s\n' '{"mode":"rule"}' ;;
 */rules) printf '%s\n' '{"rules":[{"index":0,"type":"AND","payload":"((OR,work-apps),(GEOSITE,category-ads-all))","proxy":"REJECT","extra":{"disabled":false}}]}' ;;
 */proxies/GLOBAL) printf '%s\n' '{"now":"香港","all":["香港","国内","DIRECT","custom node"]}' ;;
+*/proxies/%E9%A6%99%E6%B8%AF) printf '%s\n' '{"now":"香港节点","all":["香港节点"]}' ;;
+*/proxies/%E5%9B%BD%E5%86%85) printf '%s\n' '{"now":"国内节点","all":["国内节点"]}' ;;
 */proxies/*) printf '%s\n' '{"now":"node one","all":["node one"]}' ;;
-*/providers/proxies/marzban) printf '%s\n' '{"name":"marzban","proxies":[{"name":"香港 node"},{"name":"国内 node"}]}' ;;
 *) printf '%s\n' '{}' ;;
 esac
 EOF
@@ -82,8 +83,15 @@ grep -Fq '未知节点' "$tmp/err" || fail 'unknown node error is unclear'
 run_ctl use direct
 grep -Fq '/configs|{"mode":"direct"}' "$tmp/log" || fail 'direct does not use native mode API'
 
-run_ctl update
-grep -Fq 'PUT|http://127.0.0.1:9090/providers/proxies/marzban|' "$tmp/log" || fail 'provider update does not use native provider API'
+run_ctl nodes >"$tmp/out"
+grep -Fq '香港节点' "$tmp/out" || fail 'nodes does not list the static Hong Kong node'
+grep -Fq '国内节点' "$tmp/out" || fail 'nodes does not list the static domestic node'
+
+run_ctl update >"$tmp/out"
+grep -Fq '静态节点无需更新' "$tmp/out" || fail 'update does not explain static node behavior'
+if grep -Fq '/providers/' "$tmp/log"; then
+	fail 'static update still calls a subscription provider'
+fi
 
 run_ctl adblock off
 grep -Fq 'PATCH|http://127.0.0.1:9090/rules/disable|{"0":true}' "$tmp/log" || fail 'adblock off does not temporarily disable the native rule'
