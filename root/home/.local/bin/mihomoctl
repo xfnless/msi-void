@@ -71,7 +71,7 @@ show_group() {
 case ${1:-} in
 status)
 	[ "$#" -eq 1 ] || { usage; exit 2; }
-	"$SV" status mihomo
+	"$SUDO" "$SV" status mihomo
 	mode=$(api_get /configs | python3 -c 'import json,sys; print(json.load(sys.stdin).get("mode", "-"))')
 	printf '%-8s %s\n' 'mode:' "$mode"
 	show_group 'global' /proxies/GLOBAL

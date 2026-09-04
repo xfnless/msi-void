@@ -39,11 +39,11 @@ proxy-groups:
   - name: 香港
     type: select
     use: [marzban]
-    filter: '(?i)(香港|HK|Hong[ -]?Kong)'
+    filter: '(?i)(香港|8443|\bHK\b|Hong[ -]?Kong)'
   - name: 国内
     type: select
     use: [marzban]
-    filter: '(?i)(国内|CN|China)'
+    filter: '(?i)(国内|9443|hk-gz|\bCN\b|China)'
   - name: GLOBAL
     type: select
     proxies: [香港, 国内, DIRECT]

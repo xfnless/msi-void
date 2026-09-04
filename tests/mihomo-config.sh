@@ -28,4 +28,22 @@ if grep -Fq 'uuid:' "$config"; then
 	fail 'public example contains a node UUID'
 fi
 
+domestic_filter=$(awk '
+/name: 国内/ { in_domestic = 1; next }
+in_domestic && /filter:/ {
+    sub(/^[^:]*:[[:space:]]*/, "")
+    gsub(/^\047|\047$/, "")
+    print
+    exit
+}
+' "$config")
+python3 - "$domestic_filter" <<'PY' || fail 'domestic filter does not classify the Marzban node names'
+import re
+import sys
+
+pattern = re.compile(sys.argv[1])
+assert pattern.search("9443 hk-gz 47.243.86.161 Active VLESS tcp")
+assert not pattern.search("8443 hk Active VLESS tcp")
+PY
+
 printf 'ok - Mihomo template has private subscription, split routing and safe controller defaults\n'

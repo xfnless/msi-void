@@ -26,4 +26,30 @@ validation_line=$(grep -n 'mihomo -t' "$installer" | head -n 1 | cut -d: -f1)
 enable_line=$(grep -n '/var/service/mihomo' "$installer" | tail -n 1 | cut -d: -f1)
 [ "$validation_line" -lt "$enable_line" ] || fail 'service is enabled before configuration validation'
 
+# Re-running the installer must replace the service link itself and let runsvdir
+# start it. Dereferencing an existing link creates /etc/sv/mihomo/mihomo, while
+# an immediate `sv up` races runsvdir's creation of supervise/control.
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT HUP INT TERM
+mkdir "$tmp/bin" "$tmp/home"
+printf '#!/bin/sh\nexit 0\n' >"$tmp/mihomo"
+chmod +x "$tmp/mihomo"
+cat >"$tmp/bin/sudo" <<'EOF'
+#!/bin/sh
+printf '%s\n' "$*" >>"$MIHOMO_INSTALL_LOG"
+case "$*" in
+'test -f /etc/mihomo/config.yaml') exit 0 ;;
+'grep -Fq MARZBAN_SUBSCRIPTION_URL /etc/mihomo/config.yaml') exit 1 ;;
+esac
+exit 0
+EOF
+chmod +x "$tmp/bin/sudo"
+MIHOMO_INSTALL_LOG=$tmp/log MIHOMO_BIN=$tmp/mihomo HOME=$tmp/home \
+	PATH="$tmp/bin:$PATH" sh "$installer" >/dev/null
+grep -Fqx 'ln -sfnT /etc/sv/mihomo /var/service/mihomo' "$tmp/log" || \
+	fail 'reinstall does not atomically replace the runit service link'
+if grep -Fqx 'sv up mihomo' "$tmp/log"; then
+	fail 'installer races runsvdir by calling sv up immediately'
+fi
+
 printf 'ok - Mihomo installation validates private configuration before enabling runit\n'

@@ -40,6 +40,5 @@ fi
 
 sudo chmod 600 /etc/mihomo/config.yaml
 sudo /usr/local/bin/mihomo -t -d /var/lib/mihomo -f /etc/mihomo/config.yaml
-sudo ln -sfn /etc/sv/mihomo /var/service/mihomo
-sudo sv up mihomo
-printf '%s\n' 'Mihomo 配置有效，runit 服务已启用。'
+sudo ln -sfnT /etc/sv/mihomo /var/service/mihomo
+printf '%s\n' 'Mihomo 配置有效，runit 服务已启用并将自动启动。'

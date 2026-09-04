@@ -57,6 +57,9 @@ run_ctl() {
 
 [ -x "$script" ] || fail 'mihomoctl does not exist'
 
+run_ctl status >/dev/null
+grep -Fq "SUDO|$tmp/bin/sv status mihomo" "$tmp/log" || fail 'root runit status does not elevate'
+
 run_ctl use rule split
 grep -Fq '|http://127.0.0.1:9090/configs|{"mode":"rule"}' "$tmp/log" || fail 'rule mode does not use native configs API'
 
