@@ -68,6 +68,11 @@ proxy-groups:
     proxies: [香港, 国内, DIRECT, 香港节点, 国内节点]
 
 rules:
+  # OpenAI does not support Hong Kong access; keep account traffic on the local connection.
+  - DOMAIN-SUFFIX,chatgpt.com,DIRECT
+  - DOMAIN-SUFFIX,openai.com,DIRECT
+  - DOMAIN-SUFFIX,oaistatic.com,DIRECT
+  - DOMAIN-SUFFIX,oaiusercontent.com,DIRECT
   - AND,((OR,((PROCESS-NAME,firefox),(PROCESS-NAME,chrome),(PROCESS-NAME,Telegram))),(GEOSITE,category-ads-all)),REJECT
   - SUB-RULE,(PROCESS-NAME,firefox),work-app
   - SUB-RULE,(PROCESS-NAME,chrome),work-app

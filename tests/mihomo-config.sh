@@ -32,6 +32,10 @@ has 'short-id: REPLACE_SHORT_ID'
 has 'name: 香港'
 has 'name: 国内'
 has 'name: GLOBAL'
+has 'DOMAIN-SUFFIX,chatgpt.com,DIRECT'
+has 'DOMAIN-SUFFIX,openai.com,DIRECT'
+has 'DOMAIN-SUFFIX,oaistatic.com,DIRECT'
+has 'DOMAIN-SUFFIX,oaiusercontent.com,DIRECT'
 has 'AND,((OR,((PROCESS-NAME,firefox),(PROCESS-NAME,chrome),(PROCESS-NAME,Telegram))),(GEOSITE,category-ads-all)),REJECT'
 has 'SUB-RULE,(PROCESS-NAME,firefox),work-app'
 has 'SUB-RULE,(PROCESS-NAME,chrome),work-app'
@@ -42,8 +46,10 @@ has 'GEOSITE,cn,国内'
 has 'GEOIP,cn,国内,no-resolve'
 has 'MATCH,香港'
 
+openai_line=$(grep -n 'DOMAIN-SUFFIX,chatgpt.com,DIRECT' "$config" | cut -d: -f1)
 ad_line=$(grep -n 'GEOSITE,category-ads-all' "$config" | cut -d: -f1)
 firefox_line=$(grep -n 'SUB-RULE,(PROCESS-NAME,firefox)' "$config" | cut -d: -f1)
+[ "$openai_line" -lt "$ad_line" ] || fail 'OpenAI direct rules must run before ad blocking'
 [ "$ad_line" -lt "$firefox_line" ] || fail 'ad blocking must run before work-app split routing'
 
 if grep -Fq 'proxy-providers:' "$config" || grep -Fq 'MARZBAN_SUBSCRIPTION_URL' "$config"; then
